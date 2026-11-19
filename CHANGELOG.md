@@ -5,6 +5,26 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-11-19 (alpha 5)
+
+### Added
+- Images (M5): `Ctrl+V` of a screenshot or copied image, drag & drop from the file manager and
+  Format → "Insert Image from File…" copy the image next to the document and insert `![name](assets/name.png)`.
+- Destinations: `./assets` (default), `./${filename}.assets`, a custom folder (relative or absolute) or no copy,
+  from the Format menu; the front matter key `typora-copy-images-to` overrides them per document.
+- File names from a pattern (default `${filename}-${timestamp}`; tokens `${filename}`, `${date}`, `${time}`,
+  `${timestamp}`, `${hash}`, `${original}`), optionally asking for the name each time. A taken name gets
+  `-1`, `-2`…: an existing file is never overwritten.
+- Images pasted in a document that was never saved wait in a temporary folder and move to their destination
+  on the first save, with the paths in the text rewritten.
+- Paste from web pages, Word and other programs: HTML becomes Markdown (headings, lists, links, tables, code,
+  images). Copies inside MarkType and pastes inside code blocks are unchanged.
+- Markdown files dropped on the window open in a tab.
+- Web version: pasted and dropped images are shown for the session (not saved yet).
+
+### Changed
+- Image paths are decoded with `decodeURIComponent`, so `%23` (`#`) and similar escapes resolve to the file.
+
 ## [0.4.0] - 2026-11-19 (alpha 4)
 
 ### Added

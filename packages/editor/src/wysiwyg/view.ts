@@ -16,6 +16,7 @@ import { inlineRenderPlugin } from '../render/inline.ts';
 import { CodeBlockView, RawBlockView } from '../render/blocks.ts';
 import { tableSupport } from '../render/table.ts';
 import { tocSupport } from '../render/toc.ts';
+import { clipboardPlugin, type SaveImage } from './clipboard.ts';
 
 export interface WysiwygViewOptions {
   style: MarkdownStyle;
@@ -24,6 +25,8 @@ export interface WysiwygViewOptions {
   openLink(href: string): void;
   onEditLink?(view: EditorView, from: number, to: number): void;
   onUpdate?(view: EditorView, docChanged: boolean): void;
+  /** Stores pasted or dropped image files; without it they are ignored. */
+  saveImage?: SaveImage;
 }
 
 class ImageView implements NodeView {
@@ -126,6 +129,7 @@ function createWysiwygState(doc: PMNode, options: WysiwygViewOptions, extra: Plu
       tableEditing(),
       search(),
       seamlessPlugin({ style: options.style, onEditLink: options.onEditLink }),
+      clipboardPlugin({ style: options.style, saveImage: options.saveImage }),
       ...rendering,
     ],
   });

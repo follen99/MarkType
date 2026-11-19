@@ -57,6 +57,11 @@ export interface WindowApi {
   /** Called whenever the window is resized (maximized state may have changed). */
   onResized(cb: () => void): Promise<Unsubscribe>;
   onCloseRequested(guard: CloseGuard): Promise<Unsubscribe>;
+  /**
+   * Files dropped from the OS file manager, where the platform reports them with their paths (desktop).
+   * Elsewhere drops arrive as ordinary DOM drag events and this never fires.
+   */
+  onFileDrop(cb: (drop: FileDrop) => void): Promise<Unsubscribe>;
 }
 
 export interface CloseGuard {
@@ -145,6 +150,34 @@ export interface ThemesApi {
   openFolder(): Promise<void>;
 }
 
+/**
+ * Image files next to documents (desktop only). Paths are absolute; the app decides folder and name
+ * (docs/SPEC.md §10), the platform only writes and never replaces an existing file.
+ */
+export interface ImagesApi {
+  /**
+   * Writes `bytes` into `dir` (created if missing) as `name`, or `name-1.png`, `name-2.png`… when that
+   * name is taken. Resolves to the path written.
+   */
+  save(dir: string, name: string, bytes: Uint8Array): Promise<string>;
+  /** Moves the image at `path` into `dir` under a free name; resolves to the new path. */
+  move(path: string, dir: string): Promise<string>;
+  read(path: string): Promise<Uint8Array>;
+  /** Asks the user for image files to insert. */
+  pick(): Promise<string[]>;
+  /** Folder holding the images of documents not saved yet (one subfolder per document id). */
+  pendingRoot(): Promise<string>;
+  /** Deletes the pending images of a document closed without saving. */
+  discardPending(docId: string): Promise<void>;
+}
+
+/** Files dropped on the window from the file manager; `x`/`y` in CSS pixels of the page. */
+export interface FileDrop {
+  paths: string[];
+  x: number;
+  y: number;
+}
+
 /** Small persistent key/value store for UI state (until settings.json lands in M6). */
 export interface PrefsApi {
   get<T>(key: string, fallback: T): T;
@@ -163,6 +196,8 @@ export interface Platform {
   readonly drafts: DraftsApi;
   /** null where there is no themes folder (web): only the built-in themes are offered. */
   readonly themes: ThemesApi | null;
+  /** null where images cannot be written next to the document (web: pasted images stay in memory). */
+  readonly images: ImagesApi | null;
   readonly prefs: PrefsApi;
   /** URL the webview can load for an image `src` written in the document `doc`. */
   resolveAssetUrl(doc: FileRef | null, src: string): string;

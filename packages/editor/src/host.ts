@@ -18,7 +18,8 @@ import { serializeMarkdown } from './markdown/serialize.ts';
 import { computeStats, type TextStats } from './stats.ts';
 import { createWysiwygView } from './wysiwyg/view.ts';
 import { editLinkAt, runWysiwygCommand } from './wysiwyg/commands.ts';
-import { createSourceView, runSourceCommand } from './source/view.ts';
+import { createSourceView, insertImageText, runSourceCommand } from './source/view.ts';
+import { insertImageNodes, type ImageRef, type SaveImage } from './wysiwyg/clipboard.ts';
 
 export type EditorMode = 'wysiwyg' | 'source' | 'split';
 
@@ -46,6 +47,8 @@ export interface EditorHostOptions {
   resolveUrl(src: string): string;
   openLink(href: string): void;
   prompt(kind: 'link' | 'image', initial: string): Promise<string | null>;
+  /** Stores an image file pasted or dropped in the editor; resolves to its markdown reference. */
+  saveImage?: SaveImage;
   /** Any content change (cheap, called on every edit). */
   onChange?(): void;
   /** Debounced status (word count, cursor…). */
@@ -56,7 +59,7 @@ export interface EditorHostOptions {
   onActiveHeading?(index: number): void;
 }
 
-export type { FindQuery, FindResult, FindAction };
+export type { FindQuery, FindResult, FindAction, ImageRef, SaveImage };
 
 const STATUS_DELAY = 250;
 const ATX_HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
@@ -162,6 +165,51 @@ export class EditorHost {
     this.cleanDoc = this.wysiwyg ? this.wysiwyg.state.doc : parseMarkdown(savedText);
   }
 
+  // ---------- images ----------
+
+  /** Inserts images at a point of the window (a file drop) or, without it, at the cursor. */
+  insertImages(images: ImageRef[], point?: { x: number; y: number }): void {
+    if (this.source) {
+      const pos = point ? (this.source.posAtCoords(point) ?? undefined) : undefined;
+      insertImageText(this.source, images, pos);
+    } else if (this.wysiwyg) {
+      const pos = point ? this.wysiwyg.posAtCoords({ left: point.x, top: point.y })?.pos : undefined;
+      insertImageNodes(this.wysiwyg, images, pos);
+    }
+  }
+
+  /** The `src` of every markdown image in the document. */
+  imageSources(): string[] {
+    const doc = this.source ? parseMarkdown(this.source.state.doc.toString()) : this.wysiwyg!.state.doc;
+    const out = new Set<string>();
+    doc.descendants((node) => {
+      if (node.type.name === 'image') out.add(node.attrs.src as string);
+    });
+    return [...out];
+  }
+
+  /** Rewrites image sources (old → new), keeping undo history and the cursor. */
+  replaceImageSources(map: Map<string, string>): void {
+    if (!map.size) return;
+    if (this.source) {
+      const text = this.source.state.doc.toString();
+      const changes: { from: number; to: number; insert: string }[] = [];
+      for (const [from, to] of map) {
+        for (let index = text.indexOf(from); index >= 0; index = text.indexOf(from, index + from.length))
+          changes.push({ from: index, to: index + from.length, insert: to });
+      }
+      this.source.dispatch({ changes });
+      return;
+    }
+    const view = this.wysiwyg!;
+    const tr = view.state.tr;
+    view.state.doc.descendants((node, pos) => {
+      const next = node.type.name === 'image' ? map.get(node.attrs.src as string) : undefined;
+      if (next !== undefined) tr.setNodeMarkup(pos, null, { ...node.attrs, src: next });
+    });
+    if (tr.docChanged) view.dispatch(tr);
+  }
+
   // ---------- modes ----------
 
   setMode(mode: EditorMode): void {
@@ -185,6 +233,7 @@ export class EditorHost {
         resolveUrl: this.options.resolveUrl,
         openLink: this.options.openLink,
         onEditLink: (view, from, to) => void editLinkAt(view, this.options, from, to),
+        saveImage: this.options.saveImage,
         onUpdate: (_view, docChanged) => {
           if (docChanged) this.options.onChange?.();
           this.scheduleStatus();
@@ -196,6 +245,7 @@ export class EditorHost {
       sourcePane.id = 'typora-source';
       this.source = createSourceView(sourcePane, text, {
         prompt: this.options.prompt,
+        saveImage: this.options.saveImage,
         onUpdate: (update) => {
           if (update.docChanged) {
             this.options.onChange?.();

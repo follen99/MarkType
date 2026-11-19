@@ -81,13 +81,13 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - Da testare: installare 2-3 temi Typora scaricati dalla galleria.
 
 ## M5: Immagini e appunti → **alpha 5**
-- [ ] Incolla immagine `Ctrl+V` → salvataggio nella destinazione configurata
-- [ ] Drag & drop e inserimento da file con le stesse regole
-- [ ] Pattern dei nomi + richiesta del nome opzionale
-- [ ] Rinomina automatica in caso di conflitto (`-1`, `-2`, …), nessuna sovrascrittura
-- [ ] Documenti non salvati: cartella temporanea → spostamento al primo salvataggio
-- [ ] Front matter `typora-copy-images-to` per singolo documento
-- [ ] Incolla HTML → Markdown
+- [x] Incolla immagine `Ctrl+V` → salvataggio nella destinazione configurata
+- [x] Drag & drop e inserimento da file con le stesse regole
+- [x] Pattern dei nomi + richiesta del nome opzionale
+- [x] Rinomina automatica in caso di conflitto (`-1`, `-2`, …), nessuna sovrascrittura
+- [x] Documenti non salvati: cartella temporanea → spostamento al primo salvataggio
+- [x] Front matter `typora-copy-images-to` per singolo documento
+- [x] Incolla HTML → Markdown
 - Da testare: screenshot incollati, immagini con lo stesso nome, documento nuovo non salvato.
 
 ## M6: Export e integrazione con l'OS → **beta**

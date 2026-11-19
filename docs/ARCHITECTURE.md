@@ -125,7 +125,10 @@ export interface Platform {
   createFile / createFolder / rename / move / trash(...)
 
   // immagini
-  saveImage(doc: FileRef | null, data: Uint8Array, mime: string, originalName?: string): Promise<string /* rel path */>;
+  // (M5, implementato come `platform.images`): cartella e nome li decide `packages/app/src/images.ts`;
+  // la piattaforma scrive soltanto, con nomi liberi (`-1`, `-2`…), senza mai sovrascrivere.
+  images: { save(dir, name, bytes); move(path, dir); read(path); pick(); pendingRoot(); discardPending(id) } | null;
+  window.onFileDrop(cb: ({ paths, x, y }) => void): Unsubscribe; // file trascinati dal sistema (desktop)
   resolveAssetUrl(doc: FileRef | null, src: string): string;
 
   // varie

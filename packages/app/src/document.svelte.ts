@@ -6,10 +6,33 @@ import {
   type FindAction,
   type FindQuery,
   type FindResult,
+  type ImageRef,
   type OutlineItem,
 } from '@marktype/editor';
 import type { Translate } from '@marktype/i18n';
-import { hasUrlScheme, type FileRef, type FileStamp, type Platform } from '@marktype/platform';
+import {
+  basename,
+  decodePathComponent,
+  hasUrlScheme,
+  isAbsolutePath,
+  isInside,
+  resolvePath,
+  type FileRef,
+  type FileStamp,
+  type Platform,
+} from '@marktype/platform';
+import {
+  expandNamePattern,
+  frontMatterCopyTo,
+  imageExtension,
+  imageFolder,
+  imageMarkdownSrc,
+  sanitizeFileName,
+  shortHash,
+  stem,
+  type ImageInput,
+  type ImageSettings,
+} from './images.ts';
 import type { Dialogs } from './dialogs.svelte.ts';
 
 type LineEnding = '\n' | '\r\n';
@@ -51,6 +74,7 @@ export interface DocumentEnv {
   autosave(): boolean;
   /** Ctrl+click on a link to a local markdown file. */
   openLocal(path: string): void;
+  imageSettings(): ImageSettings;
 }
 
 /** One open document (a tab): file identity, editor, dirty state and save workflows. */
@@ -120,6 +144,13 @@ export class DocumentController {
           t('dialog.ok'),
           t('dialog.cancel'),
         ),
+      saveImage: (file) =>
+        this.storeImage({
+          name: file.name,
+          type: file.type,
+          path: null,
+          read: async () => new Uint8Array(await file.arrayBuffer()),
+        }),
       onChange: () => this.onChange(),
       onStatus: (status) => (this.status = status),
       onOutline: (outline) => (this.outline = outline),
@@ -187,6 +218,104 @@ export class DocumentController {
     }
   }
 
+  // ---------- images ----------
+
+  /**
+   * Copies an image next to the document (docs/SPEC.md §10) and returns how to reference it. Unsaved
+   * documents keep their images in a pending folder until the first save. Resolves to null if the user
+   * cancels or the copy fails (after telling them).
+   */
+  async storeImage(input: ImageInput): Promise<ImageRef | null> {
+    const { platform, dialogs, t } = this.env;
+    const images = platform.images;
+    const original = stem(input.name) || 'image';
+    try {
+      if (!images) {
+        // Web: the image lives in memory for this session.
+        const blob = new Blob([(await input.read()) as Uint8Array<ArrayBuffer>], { type: input.type });
+        return { src: URL.createObjectURL(blob), alt: original };
+      }
+      const settings = this.env.imageSettings();
+      const doc = this.file;
+      let dir: string | null;
+      if (doc) {
+        dir = imageFolder(doc.id, settings, frontMatterCopyTo(this.host?.getMarkdown() ?? ''));
+        if (dir === null && input.path) return { src: imageMarkdownSrc(doc.id, input.path), alt: original };
+        // "No copy" cannot keep a pasted image anywhere else: it goes to ./assets.
+        dir ??= imageFolder(doc.id, { ...settings, destination: 'assets' }, null)!;
+      } else {
+        dir = resolvePath(await images.pendingRoot(), this.id);
+      }
+      const bytes = await input.read();
+      const hash = settings.pattern.includes('${hash}') ? await shortHash(bytes) : '';
+      let name = expandNamePattern(settings.pattern, {
+        filename: stem(doc?.name ?? t('doc.untitled')),
+        original,
+        date: new Date(),
+        hash,
+      });
+      if (settings.askName) {
+        const answer = await dialogs.prompt(
+          t('image.name.title'),
+          t('image.name.label'),
+          name,
+          t('dialog.ok'),
+          t('dialog.cancel'),
+        );
+        if (answer === null) return null;
+        name = answer.trim() || name;
+      }
+      const path = await images.save(
+        dir,
+        `${sanitizeFileName(name)}.${imageExtension(input.name, input.type)}`,
+        bytes,
+      );
+      return { src: imageMarkdownSrc(doc?.id ?? null, path), alt: stem(path) };
+    } catch (error) {
+      await dialogs.alert(t('image.error.save'), errorMessage(error), t('dialog.ok'));
+      return null;
+    }
+  }
+
+  /** Stores images (file drop, insert from file) and inserts them at `point` or at the cursor. */
+  async insertImages(inputs: ImageInput[], point?: { x: number; y: number }): Promise<void> {
+    const refs: ImageRef[] = [];
+    for (const input of inputs) {
+      const ref = await this.storeImage(input);
+      if (ref) refs.push(ref);
+    }
+    this.host?.insertImages(refs, point);
+  }
+
+  /**
+   * Before writing to `file`: moves images still in the pending folder (pasted while the document was
+   * untitled) to their destination and rewrites their paths. An image that cannot be moved keeps its
+   * pending path, so nothing is lost.
+   */
+  private async relocatePendingImages(file: FileRef): Promise<void> {
+    const images = this.env.platform.images;
+    if (!images || !this.host) return;
+    const sources = this.host.imageSources();
+    if (!sources.length) return;
+    const root = await images.pendingRoot();
+    const settings = this.env.imageSettings();
+    const map = new Map<string, string>();
+    for (const src of sources) {
+      if (hasUrlScheme(src)) continue;
+      const path = decodePathComponent(src);
+      if (!isAbsolutePath(path) || !isInside(path, root)) continue;
+      const dir =
+        imageFolder(file.id, settings, frontMatterCopyTo(this.host.getMarkdown())) ??
+        imageFolder(file.id, { ...settings, destination: 'assets' }, null)!;
+      try {
+        map.set(src, imageMarkdownSrc(file.id, await images.move(path, dir)));
+      } catch (error) {
+        console.error('Cannot move pending image', basename(path), error);
+      }
+    }
+    this.host.replaceImageSources(map);
+  }
+
   // ---------- save ----------
 
   /** Asks to save unsaved changes. Resolves to true when the document may be closed or replaced. */
@@ -225,6 +354,8 @@ export class DocumentController {
   private async write(file: FileRef, expected: FileStamp | null): Promise<boolean> {
     if (!this.host) return false;
     clearTimeout(this.autosaveTimer);
+    await this.relocatePendingImages(file).catch((error: unknown) => console.error(error));
+    if (!this.host) return false;
     const markdown = this.host.getMarkdown();
     const { platform, dialogs, t } = this.env;
     try {
@@ -300,6 +431,11 @@ export class DocumentController {
     this.host?.destroy();
     this.host = null;
     this.container.remove();
-    return discard ? this.env.platform.drafts.remove(this.id).catch(() => {}) : Promise.resolve();
+    if (!discard) return Promise.resolve();
+    const { drafts, images } = this.env.platform;
+    return Promise.all([
+      drafts.remove(this.id).catch(() => {}),
+      images?.discardPending(this.id).catch(() => {}),
+    ]).then(() => {});
   }
 }

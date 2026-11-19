@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.4.0` (alpha 4, temi).
+> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.5.0` (alpha 5, immagini e appunti).
 
 ## 1. Dove siamo
 
@@ -14,8 +14,8 @@
 | M2 Cartelle, schede, sidebar → alpha 2 | ✅ completata | `8288b22` | sì, "funziona tutto bene" |
 | M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | **no, in attesa di test** |
 | M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
-| M5 Immagini e appunti → alpha 5 | ⏭️ **prossima** | | |
-| M6 Export e integrazione OS → beta | da fare | | |
+| M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | **no, in attesa di test** |
+| M6 Export e integrazione OS → beta | ⏭️ **prossima** | | |
 | M7 Rifinitura → v1.0 | da fare | | |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
@@ -26,7 +26,7 @@ Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti co
 release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o che finisca la finestra di 5 ore.
 
 ### Ultima build (Windows 11, release)
-- Installer NSIS: **4,46 MB** (target < 15 MB).
+- Installer NSIS: **4,54 MB** (target < 15 MB).
 - RAM a vuoto (M0): ~206 MB privati, quasi tutti WebView2 → **sopra il target di 150 MB**, da ottimizzare in M7.
 - Bundle JS iniziale ~330 KB gzip; Mermaid, KaTeX, linguaggi di highlight, DOMPurify e gemoji sono chunk lazy.
 
@@ -42,28 +42,39 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
 - Colori dei token predefiniti in `base.css` (variante scura con `:where(.mt-theme-dark)`, stessa specificità).
 - Menu dinamici: `MenuSlot` in `registry.ts`, `slotItems`/`isVisible` in `MenuBar.svelte`.
 
-## 2. Prossimo passo: M5 Immagini e appunti
+### Come sono fatte le immagini (M5)
+- Rust `commands/images.rs`: `save_image` (corpo = byte grezzi, header `x-dir`/`x-name` codificati con
+  `encodeURIComponent`), `move_image`, `read_image_file`, `pending_images_root`, `discard_pending_images`.
+  `create_free_file` crea il file con `create_new` (`nome.png`, `nome-1.png`…): **mai sovrascrivere**, nemmeno in
+  caso di corsa con un altro programma. Ogni cartella usata viene aggiunta allo scope del protocollo asset.
+- `packages/app/src/images.ts` (funzioni pure, testate in `test/images.test.ts`): impostazioni (`prefs` chiave
+  `images`), pattern dei nomi, `typora-copy-images-to`, cartella di destinazione, `src` relativo con `/` e
+  `%20`. `DocumentController.storeImage()` usa tutto questo; `relocatePendingImages()` prima di ogni scrittura
+  sposta le immagini ancora nella cartella temporanea (`app_data_dir/pending-images/<id doc>`) e riscrive i
+  percorsi (`EditorHost.replaceImageSources`, mantiene l'annulla).
+- Editor: `wysiwyg/clipboard.ts` (ProseMirror `handlePaste`/`handleDrop`), `source/view.ts` `imageHandlers`
+  (CodeMirror), `markdown/html.ts` (HTML → Markdown con `rehype-parse` + `rehype-remark`, chunk lazy). Se negli
+  appunti c'è HTML con testo vince l'HTML, altrimenti i file immagine; le copie interne (`data-pm-slice`) e gli
+  incolla nei blocchi di codice restano quelli di ProseMirror.
+- Trascinamento dall'Esplora risorse: su desktop Tauri intercetta i drop del sistema (con i percorsi), quindi
+  arrivano da `platform.window.onFileDrop` (App.svelte: immagini nel documento, `.md` aperti in una scheda).
+  Il drag & drop HTML5 interno (sidebar, immagini dentro l'editor) continua a funzionare.
+- "Nessuna copia" vale per i file con un percorso (inserisci da file, trascinamento); un'immagine incollata non
+  ha un file d'origine e va comunque in `./assets`.
+- Web: `platform.images = null`, le immagini incollate sono URL `blob:` validi solo nella sessione.
 
-Obiettivo: SPEC §10 e §11.
+## 2. Prossimo passo: M6 Export e integrazione con l'OS → beta
 
-1. **Rust** `commands/images.rs`: `save_image(doc_path, bytes|source_path, name_hint)` → calcola la destinazione
-   (default `./assets`; `./${filename}.assets`; cartella personalizzata; front matter `typora-copy-images-to` passato
-   dal frontend), crea la cartella, sceglie un nome libero (`nome.png`, `nome-1.png`, … **mai sovrascrivere**:
-   usare `OpenOptions::create_new`), restituisce il percorso relativo al documento con `/` e spazi codificati.
-   Test con `tempfile`.
-2. **Pattern dei nomi**: `${filename}-${timestamp}` di default; token `${filename}`, `${date}`, `${time}`,
-   `${timestamp}`, `${hash}`, `${original}`. Funzione pura in TS (testabile) o in Rust.
-3. **Documento non salvato**: immagini in una cartella temporanea (`app_data_dir/pending-images/<id>`), URL
-   asset per la visualizzazione; al primo salvataggio spostarle nella destinazione e riscrivere i percorsi nel testo.
-4. **Frontend/editor**: gestore `paste`/`drop` in `packages/editor` (ProseMirror `handlePaste`/`handleDrop` e
-   CodeMirror) che chiama un callback dell'host (`onImage(file) → Promise<src>`), inserisce `![](src)`.
-   Il Platform espone `images.save(...)`; il web per ora usa `URL.createObjectURL` (lo zip è Fase 2).
-5. **Incolla HTML → Markdown**: `rehype-parse` + `rehype-remark` + `remark-stringify` (lazy), solo se negli appunti
-   c'è `text/html` e non si sta incollando dentro un blocco di codice; tabelle, liste, link, immagini, codice.
-6. Asset protocol: le immagini nella cartella del documento sono già nello scope (`fs.rs` `allow_assets_near`).
-7. Test: fixture di round-trip per i percorsi con spazi; unit test dei nomi; smoke desktop per salvataggio senza
-   sovrascrittura (estendere `scripts/smoke-desktop.mjs`).
+Obiettivo: SPEC §13, §14, §16 (vedi [ROADMAP.md](ROADMAP.md), sezione M6).
 
+1. **`settings.json`** in `user_config_dir()` (vedi M4) con migrazione delle `prefs` di localStorage (sidebar,
+   autosave, modalità, ultima cartella, recenti, `images`, tema); pannello impostazioni (anche per le opzioni
+   immagini che oggi sono nel menu Formato) e `keybindings.json`.
+2. **Istanza singola + CLI + associazione `.md`**: `tauri-plugin-single-instance`, argomenti della riga di comando,
+   associazione file nell'installer NSIS/MSI (`bundle.fileAssociations`), evento verso il frontend per aprire.
+3. **Export HTML** autonomo (CSS del tema incorporato, immagini relative o incorporate), **PDF** (stampa della
+   WebView: `print` su Windows/macOS), **Pandoc** se installato (DOCX, ODT, EPUB, LaTeX).
+4. Smoke desktop: estendere con apertura da riga di comando.
 ## 3. Mappa del codice
 
 ```

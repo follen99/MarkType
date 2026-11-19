@@ -47,7 +47,9 @@
 
   /** Drops hidden commands, then separators left at the edges or doubled. */
   function visibleEntries(items: (typeof MENUS)[number]['items']) {
-    const kept = items.filter((item) => typeof item !== 'string' || item === '-' || isVisible(item));
+    const kept = items.filter((item) =>
+      typeof item === 'string' ? item === '-' || isVisible(item) : slotItems(item.slot).length > 0,
+    );
     return kept.filter((item, i) => item !== '-' || (i > 0 && i < kept.length - 1 && kept[i - 1] !== '-'));
   }
 
