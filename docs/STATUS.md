@@ -20,6 +20,7 @@
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
+Elenco delle prove per l'utente: [DA-TESTARE.md](DA-TESTARE.md).
 
 **Modalità automatica (richiesta dall'utente il 2026-11-19):** un branch per milestone (`m5-images`…), merge su
 `main` solo con tutto verde (check, test, clippy, prettier, build installer, `scripts/smoke-desktop.mjs`), una
