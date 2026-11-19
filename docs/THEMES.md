@@ -11,7 +11,8 @@ e funziona. Questo documento descrive il contratto DOM/CSS che MarkType rispetta
 | macOS | `~/Library/Application Support/MarkType/themes/` |
 | Linux | `~/.config/marktype/themes/` |
 
-Si apre anche da *Impostazioni → Aspetto → Apri cartella temi*.
+Si apre dal menu *Temi → Apri la cartella dei temi*. Un tema copiato nella cartella compare subito nel menu *Temi*,
+senza riavviare.
 
 ## Struttura di un tema
 
@@ -25,7 +26,20 @@ themes/
 ```
 
 Ordine di caricamento: `base.css` (interno) → `<tema>.css` → `base.user.css` → `<tema>.user.css`.
-Le modifiche ai file si applicano subito (live reload).
+Le modifiche ai file si applicano subito (live reload). I percorsi relativi (`url('./my-theme/font.woff')`,
+`@import "my-theme/extra.css"`) si risolvono accanto al file del tema.
+
+## Scelta del tema
+
+- Menu **Temi**: i temi sono divisi in *chiari* e *scuri*. Un tema è scuro se il `.meta.json` ha il tag `dark`,
+  se il nome contiene `dark`/`night`/…, oppure se il suo `--bg-color` è scuro.
+- **Segui il tema del sistema** (predefinito): si usa un tema chiaro e uno scuro, scelti dai due gruppi del menu,
+  e si passa dall'uno all'altro con il sistema operativo. Disattivando l'opzione, il tema scelto resta fisso.
+- Temi inclusi: **Chiaro**, **Carta** (seppia, caratteri con grazie), **Scuro**, **Formal Dark Pro**.
+- Se un tema non colora i token del codice, MarkType applica colori predefiniti (chiari o scuri secondo il tema),
+  come fa Typora con gli stili base di CodeMirror.
+- Barra del titolo, menu, schede e barra di stato (che in Typora sono nativi) mantengono il font dell'interfaccia
+  anche se il tema cambia il font di `body`.
 
 ## Variabili CSS supportate
 
@@ -65,6 +79,10 @@ Elementi propri di MarkType (barra del titolo, schede, barra di stato) usano il 
 con le variabili sopra, quindi seguono anche i temi Typora che non li conoscono.
 
 ## Limiti noti
+
+- La versione web offre solo i temi inclusi (non c'è una cartella temi).
+- L'elemento `content` di Typora non esiste: le regole su `content` vengono ignorate (di solito impostano solo lo sfondo,
+  che MarkType prende già da `--bg-color`).
 
 I selettori di elementi di Typora che MarkType non ha (es. `.megamenu-*`, `.ty-preferences`, dialog interni)
 vengono semplicemente ignorati.

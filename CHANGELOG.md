@@ -5,6 +5,20 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-11-19 (alpha 4)
+
+### Added
+- Themes (M4): Typora themes from the user themes folder (`%APPDATA%\MarkType\themes` and equivalents), with
+  `base.user.css` / `<theme>.user.css` overrides, relative `url()` assets and live reload on every change.
+- Themes menu: light and dark groups, "Follow System Theme" (one light and one dark theme), fixed theme,
+  "Open Themes Folder". The choice is remembered.
+- Built-in themes: Light, Paper (new, sepia and serif), Dark, Formal Dark Pro.
+- Default syntax colours for themes that do not style code tokens; diagrams and math re-render with the new theme.
+- `scripts/smoke-desktop.mjs`: end-to-end check of the built desktop app through the WebView2 debugging port.
+
+### Changed
+- Title bar, menus, tabs and status bar keep the UI font when a theme changes the `body` font.
+
 ## [0.3.0] - 2026-11-19 (alpha 3)
 
 First public pre-release: installers for Windows, macOS and Linux, and the web version on GitHub Pages.

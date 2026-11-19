@@ -167,6 +167,8 @@ export function createWebPlatform(): Platform {
           .filter((d): d is Draft => d !== null);
       },
     },
+    // No themes folder in the browser: only the built-in themes.
+    themes: null,
     prefs,
     // Relative images cannot be read from a single opened file; they load only if they are URLs.
     resolveAssetUrl: (_doc, src) => src,

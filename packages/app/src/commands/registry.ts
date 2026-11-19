@@ -30,6 +30,8 @@ export const APP_COMMANDS = [
   'zoomOut',
   'zoomReset',
   'fullscreen',
+  'followSystemTheme',
+  'openThemesFolder',
   'about',
 ] as const;
 
@@ -97,7 +99,12 @@ export const DEFAULT_KEYBINDINGS: Partial<Record<CommandId, string[]>> = {
   fullscreen: ['F11'],
 };
 
-export type MenuEntry = CommandId | '-';
+/** A place in a menu filled at runtime (e.g. the installed themes). */
+export interface MenuSlot {
+  slot: 'themes';
+}
+
+export type MenuEntry = CommandId | '-' | MenuSlot;
 
 export interface MenuDef {
   id: string;
@@ -216,6 +223,11 @@ export const MENUS: MenuDef[] = [
       '-',
       'fullscreen',
     ],
+  },
+  {
+    id: 'themes',
+    label: 'menu.themes',
+    items: ['followSystemTheme', '-', { slot: 'themes' }, '-', 'openThemesFolder'],
   },
   { id: 'help', label: 'menu.help', items: ['about'] },
 ];

@@ -47,6 +47,16 @@ async function renderPreview(kind: PreviewKind, source: string, target: HTMLElem
   }
 }
 
+const liveViews = new Set<PreviewBlockView>();
+
+/**
+ * Renders every visible preview again. Called after a theme change: Mermaid bakes the theme's colours
+ * into the SVG and previews copy the document font when they render.
+ */
+export function refreshPreviews(): void {
+  for (const view of liveViews) view.refresh();
+}
+
 /**
  * A text block whose source is hidden behind a rendered preview while the cursor is elsewhere
  * (Typora's behavior for diagrams, math blocks and HTML). Clicking the preview edits the source.
@@ -78,8 +88,10 @@ abstract class PreviewBlockView implements NodeView {
     if (!kind) {
       this.preview?.remove();
       this.preview = null;
+      liveViews.delete(this);
       return;
     }
+    liveViews.add(this);
     if (!this.preview) {
       this.preview = document.createElement('div');
       this.preview.className = `md-preview md-preview-${kind}${kind === 'mermaid' ? ' md-diagram-panel' : ''}`;
@@ -134,8 +146,14 @@ abstract class PreviewBlockView implements NodeView {
     return !!this.preview?.contains(event.target as Node) && event.type !== 'mousedown';
   }
 
+  refresh(): void {
+    this.rendered = '';
+    this.schedule(0);
+  }
+
   destroy(): void {
     clearTimeout(this.timer);
+    liveViews.delete(this);
   }
 }
 
