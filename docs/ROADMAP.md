@@ -13,7 +13,7 @@
 - [x] Scaffolding del monorepo pnpm (apps/desktop, apps/web, packages/*)
 - [x] Progetto Tauri 2 che apre una finestra senza cornice (barra del titolo propria, tema chiaro/scuro di sistema)
 - [x] CI: type-check, formattazione, test TS e Rust su Windows/macOS/Linux
-- [x] Workflow di release (tag `v*` → installer su GitHub Releases, bozza)
+- [x] Workflow di release (tag `v*` → installer su GitHub Releases, bozza); verificato con `v0.3.0` (2026-11-19)
 
 Misure M0 (Windows 11, build release, 2026-11-19): installer NSIS **1,09 MB**, MSI 1,59 MB, `marktype.exe` 2,98 MB;
 finestra creata in ~1,7 s al primo avvio a freddo; RAM privata totale **~206 MB**, di cui ~195 MB nei processi WebView2.
@@ -114,7 +114,7 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - [ ] `WebPlatform` (apri/salva singolo file, File System Access dove disponibile, altrimenti download)
 - [ ] Immagini in memoria + salvataggio/apertura come `.zip`
 - [ ] Nascondere le funzioni non disponibili (cartelle, ricerca, Pandoc)
-- [ ] Deploy automatico su GitHub Pages
+- [x] Deploy automatico su GitHub Pages (a ogni push su `main`, https://follen99.github.io/MarkType/)
 - [ ] Test e2e (Playwright) su Chromium, Firefox, WebKit
 
 ## Futuro

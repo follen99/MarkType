@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo il commit `c8efd1f` (alpha 3).
+> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.3.0` (alpha 3, prima pre-release pubblica su GitHub).
 
 ## 1. Dove siamo
 
@@ -12,12 +12,12 @@
 | M0 Fondamenta (monorepo, Tauri, CI) | ✅ completata | `4a677c9` | sì |
 | M1 Nucleo editor → alpha 1 | ✅ completata | `9a1ef18` | sì, "funziona tutto" |
 | M2 Cartelle, schede, sidebar → alpha 2 | ✅ completata | `8288b22` | sì, "funziona tutto bene" |
-| M3 Rendering avanzato → alpha 3 | ✅ completata | `c8efd1f` | **no, in attesa di test** |
+| M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | **no, in attesa di test** |
 | M4 Temi → alpha 4 | ⏭️ **prossima** | | |
 | M5 Immagini e appunti → alpha 5 | da fare | | |
 | M6 Export e integrazione OS → beta | da fare | | |
 | M7 Rifinitura → v1.0 | da fare | | |
-| Fase 2: versione web (GitHub Pages) | da fare (lo scheletro esiste già) | | |
+| Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
 
@@ -169,7 +169,7 @@ Le funzioni su cartelle e file nativi si provano solo nell'app desktop (le prova
 | Scorciatoie personalizzabili (`keybindings.json`), pannello impostazioni | M6 |
 | Apertura da riga di comando / doppio clic / menu contestuale / istanza singola | M6 |
 | Installer non firmati | dopo v1.0 (SPEC §17) |
-| CI su GitHub mai verificata (manca `gh`) | verificare dalla pagina Actions |
+| Azioni GitHub su Node 20 deprecato (avvisi in CI) | aggiornare checkout/setup-node/pnpm/pages a versioni Node 24 |
 | Web: immagini relative non caricabili; zip per immagini incollate | Fase 2 |
 
 ## 7. Come lavorare con l'utente
