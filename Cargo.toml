@@ -1,0 +1,17 @@
+[workspace]
+resolver = "3"
+members = ["apps/desktop/src-tauri"]
+
+[workspace.package]
+version = "0.1.0"
+edition = "2024"
+license = "GPL-3.0-only"
+repository = "https://github.com/follen99/MarkType"
+
+# Release builds target a small binary (see docs/ARCHITECTURE.md, "Lazy loading e prestazioni").
+[profile.release]
+codegen-units = 1
+lto = true
+opt-level = "s"
+panic = "abort"
+strip = true

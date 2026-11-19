@@ -10,10 +10,14 @@
 - [x] Documenti: roadmap, scorciatoie, temi, README, CONTRIBUTING
 - [x] Testo della licenza GPL-3.0 in `LICENSE`
 - [x] Toolchain di sviluppo (Rust, Node LTS, pnpm, MSVC Build Tools)
-- [ ] Scaffolding del monorepo pnpm (apps/desktop, apps/web, packages/*)
-- [ ] Progetto Tauri 2 che apre una finestra senza cornice
-- [ ] CI: lint, type-check, test TS e Rust su Windows/macOS/Linux
-- [ ] Workflow di release (tag `v*` → installer su GitHub Releases, bozza)
+- [x] Scaffolding del monorepo pnpm (apps/desktop, apps/web, packages/*)
+- [x] Progetto Tauri 2 che apre una finestra senza cornice (barra del titolo propria, tema chiaro/scuro di sistema)
+- [x] CI: type-check, formattazione, test TS e Rust su Windows/macOS/Linux
+- [x] Workflow di release (tag `v*` → installer su GitHub Releases, bozza)
+
+Misure M0 (Windows 11, build release, 2026-11-19): installer NSIS **1,09 MB**, MSI 1,59 MB, `marktype.exe` 2,98 MB;
+finestra creata in ~1,7 s al primo avvio a freddo; RAM privata totale **~206 MB**, di cui ~195 MB nei processi WebView2.
+La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, `MemoryUsageTargetLevel`, un solo processo renderer).
 
 ## M1: Nucleo dell'editor → **alpha 1**
 - [ ] Schema ProseMirror (blocchi e inline CommonMark + GFM)
@@ -88,6 +92,7 @@
 
 ## M7: Rifinitura → **v1.0**
 - [ ] Verifica dei target di prestazione (installer < 15 MB, avvio < 1 s, RAM < 150 MB, 10k righe)
+- [ ] Ridurre la RAM di WebView2 (oggi ~206 MB a vuoto, vedi le misure di M0)
 - [ ] Accessibilità di base (navigazione da tastiera nei menu, contrasto)
 - [ ] README con screenshot, guida all'installazione per OS non firmati
 - [ ] CHANGELOG e release `v1.0.0`

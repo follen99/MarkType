@@ -21,6 +21,14 @@ pnpm build                # release build of the desktop app (installers in targ
 pnpm build:web            # static build for GitHub Pages
 ```
 
+## Troubleshooting (Windows)
+
+- **`'node' is not recognized` inside npm/pnpm scripts** while `node` works in PowerShell: an entry of the system
+  `Path` contains a stray `"` (e.g. `C:\Program Files\WSL"`), and `cmd.exe` ignores every entry after it. Fix the
+  entry (needs admin), or strip quotes in the current shell:
+  `$env:Path = $env:Path -replace '"',''`.
+- **`os error 1224` while bundling**: the antivirus is scanning the installer; re-run `pnpm tauri build --bundles nsis`.
+
 ## Repository layout
 
 See [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#struttura-della-repository).

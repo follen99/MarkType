@@ -1,0 +1,56 @@
+/* MarkType Dark */
+
+:root {
+  --bg-color: #1e1f22;
+  --text-color: #d7dae0;
+  --primary-color: #6ea8fe;
+  --side-bar-bg-color: #17181a;
+  --control-text-color: #9aa0a6;
+  --control-text-hover-color: #e8eaed;
+  --item-hover-bg-color: rgba(255, 255, 255, 0.07);
+  --active-file-bg-color: rgba(255, 255, 255, 0.1);
+  --window-border: 1px solid rgba(255, 255, 255, 0.07);
+  --select-text-bg-color: rgba(110, 168, 254, 0.3);
+  --meta-content-color: #7d8590;
+}
+
+#write {
+  font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+#write h1,
+#write h2,
+#write h3,
+#write h4,
+#write h5,
+#write h6 {
+  margin: 1.4em 0 0.6em;
+  line-height: 1.25;
+  font-weight: 650;
+  color: #f1f3f5;
+}
+
+#write h1 {
+  font-size: 2.1em;
+  font-weight: 700;
+}
+#write h2 {
+  font-size: 1.6em;
+}
+#write h3 {
+  font-size: 1.3em;
+}
+#write h4 {
+  font-size: 1.1em;
+}
+#write h5 {
+  font-size: 1em;
+}
+#write h6 {
+  font-size: 0.95em;
+  color: #9aa0a6;
+}
+
+#write a {
+  color: var(--primary-color);
+}

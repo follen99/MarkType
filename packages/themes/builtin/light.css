@@ -1,0 +1,48 @@
+/* MarkType Light: default theme. */
+
+:root {
+  --bg-color: #ffffff;
+  --text-color: #2f3337;
+  --primary-color: #3b7ddd;
+  --side-bar-bg-color: #f7f7f8;
+}
+
+#write {
+  font-family: -apple-system, 'Segoe UI', 'Helvetica Neue', Arial, 'Noto Sans', sans-serif;
+}
+
+#write h1,
+#write h2,
+#write h3,
+#write h4,
+#write h5,
+#write h6 {
+  margin: 1.4em 0 0.6em;
+  line-height: 1.25;
+  font-weight: 650;
+}
+
+#write h1 {
+  font-size: 2.1em;
+  font-weight: 700;
+}
+#write h2 {
+  font-size: 1.6em;
+}
+#write h3 {
+  font-size: 1.3em;
+}
+#write h4 {
+  font-size: 1.1em;
+}
+#write h5 {
+  font-size: 1em;
+}
+#write h6 {
+  font-size: 0.95em;
+  color: #6a737d;
+}
+
+#write a {
+  color: var(--primary-color);
+}

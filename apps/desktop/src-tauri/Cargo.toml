@@ -1,0 +1,25 @@
+[package]
+name = "marktype"
+description = "A lightweight, Typora-style WYSIWYG Markdown editor"
+authors = ["MarkType contributors"]
+default-run = "marktype"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lib]
+# The `_lib` suffix avoids a name clash with the binary on Windows (cargo issue #8519).
+name = "marktype_lib"
+crate-type = ["staticlib", "cdylib", "rlib"]
+
+[[bin]]
+name = "marktype"
+path = "src/main.rs"
+
+[dependencies]
+serde = { version = "1.0.229", features = ["derive"] }
+tauri = { version = "2.12.7", features = [] }
+
+[build-dependencies]
+tauri-build = { version = "2.7.6", features = [] }

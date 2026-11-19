@@ -1,0 +1,10 @@
+{
+  "app.name": "MarkType",
+  "window.minimize": "Riduci a icona",
+  "window.maximize": "Ingrandisci",
+  "window.restore": "Ripristina",
+  "window.close": "Chiudi",
+  "welcome.title": "Benvenuto in MarkType",
+  "welcome.body": "Un editor Markdown leggero. L'editor arriva nella prossima build.",
+  "status.version": "Versione {version}"
+}

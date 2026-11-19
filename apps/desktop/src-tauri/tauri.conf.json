@@ -1,0 +1,53 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "MarkType",
+  "mainBinaryName": "marktype",
+  "identifier": "io.github.follen99.marktype",
+  "build": {
+    "beforeDevCommand": "pnpm dev:vite",
+    "devUrl": "http://localhost:1420",
+    "beforeBuildCommand": "pnpm build:vite",
+    "frontendDist": "../dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "MarkType",
+        "width": 1100,
+        "height": 760,
+        "minWidth": 480,
+        "minHeight": 320,
+        "center": true,
+        "decorations": false,
+        "shadow": true,
+        "visible": false
+      }
+    ],
+    "security": {
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data:; connect-src ipc: http://ipc.localhost"
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "category": "Productivity",
+    "shortDescription": "Lightweight Typora-style Markdown editor",
+    "longDescription": "MarkType is a lightweight WYSIWYG Markdown editor with Typora-compatible themes.",
+    "license": "GPL-3.0-only",
+    "licenseFile": "../../../LICENSE",
+    "copyright": "MarkType contributors, GPL-3.0",
+    "icon": [
+      "icons/32x32.png",
+      "icons/128x128.png",
+      "icons/128x128@2x.png",
+      "icons/icon.icns",
+      "icons/icon.ico"
+    ],
+    "windows": {
+      "nsis": {
+        "installMode": "currentUser"
+      }
+    }
+  }
+}

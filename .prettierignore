@@ -1,0 +1,10 @@
+node_modules
+dist
+target
+pnpm-lock.yaml
+apps/desktop/src-tauri/gen
+apps/desktop/src-tauri/icons
+packages/themes/builtin/formal-dark-pro
+packages/editor/test/fixtures
+*.md
+LICENSE

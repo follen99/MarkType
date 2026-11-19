@@ -1,0 +1,10 @@
+{
+  "name": "@marktype/themes",
+  "version": "0.1.0",
+  "private": true,
+  "license": "GPL-3.0-only",
+  "exports": {
+    "./base.css": "./base.css",
+    "./builtin/*": "./builtin/*"
+  }
+}
