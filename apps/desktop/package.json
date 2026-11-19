@@ -13,7 +13,9 @@
   "dependencies": {
     "@marktype/app": "workspace:*",
     "@marktype/platform": "workspace:*",
-    "@tauri-apps/api": "^2.12.5"
+    "@tauri-apps/api": "^2.12.5",
+    "@tauri-apps/plugin-dialog": "^2.8.4",
+    "@tauri-apps/plugin-opener": "^2.7.3"
   },
   "devDependencies": {
     "@sveltejs/vite-plugin-svelte": "^7.3.1",

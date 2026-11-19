@@ -1,0 +1,343 @@
+/*
+ * Structural editor styles and Typora-like defaults. Themes override everything below except the
+ * ProseMirror/CodeMirror mechanics at the top.
+ */
+
+/* ---------- ProseMirror mechanics ---------- */
+
+.ProseMirror {
+  position: relative;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+  white-space: break-spaces;
+  font-variant-ligatures: none;
+  font-feature-settings: 'liga' 0;
+  outline: none;
+}
+
+.ProseMirror pre {
+  white-space: pre-wrap;
+}
+
+.ProseMirror li {
+  position: relative;
+}
+
+.ProseMirror-hideselection *::selection {
+  background: transparent;
+}
+
+.ProseMirror-hideselection {
+  caret-color: transparent;
+}
+
+.ProseMirror [draggable][contenteditable='false'] {
+  user-select: text;
+}
+
+.ProseMirror-selectednode {
+  outline: 2px solid var(--primary-color);
+  outline-offset: 1px;
+  border-radius: 3px;
+}
+
+.ProseMirror-gapcursor {
+  display: none;
+  pointer-events: none;
+  position: absolute;
+}
+
+.ProseMirror-gapcursor:after {
+  content: '';
+  display: block;
+  position: absolute;
+  top: -2px;
+  width: 20px;
+  border-top: 1px solid var(--text-color);
+  animation: ProseMirror-cursor-blink 1.1s steps(2, start) infinite;
+}
+
+@keyframes ProseMirror-cursor-blink {
+  to {
+    visibility: hidden;
+  }
+}
+
+.ProseMirror-focused .ProseMirror-gapcursor {
+  display: block;
+}
+
+.ProseMirror .selectedCell::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: var(--select-text-bg-color);
+  pointer-events: none;
+}
+
+/* ---------- Editor layout & modes ---------- */
+
+.mt-editor {
+  height: 100%;
+}
+
+.mt-pane {
+  position: relative;
+  height: 100%;
+  overflow: auto;
+}
+
+.mt-editor[data-mode='split'] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+}
+
+.mt-editor[data-mode='split'] .mt-source-pane {
+  border-right: var(--window-border);
+}
+
+.mt-editor[data-mode='split'] #write {
+  padding-left: 32px;
+  padding-right: 32px;
+}
+
+/* ---------- Seamless markers ---------- */
+
+#write .md-meta {
+  color: var(--meta-content-color);
+  font-family: var(--monospace);
+  font-size: 0.88em;
+  font-weight: normal;
+  font-style: normal;
+  text-decoration: none;
+  opacity: 0.85;
+}
+
+#write .md-link-meta {
+  cursor: pointer;
+}
+
+#write .md-link-meta:hover {
+  color: var(--primary-color);
+}
+
+#write .md-image-src {
+  display: block;
+  margin-top: 4px;
+}
+
+/* ---------- Typora-like defaults ---------- */
+
+#write p,
+#write ul,
+#write ol,
+#write blockquote,
+#write pre,
+#write table {
+  margin: 0.8em 0;
+}
+
+#write a {
+  cursor: text;
+}
+
+#write code {
+  font-family: var(--monospace);
+  font-size: 0.9em;
+  padding: 0.1em 0.35em;
+  border-radius: 4px;
+  background: var(--item-hover-bg-color);
+}
+
+#write pre.md-fences,
+#write pre.md-rawblock {
+  font-family: var(--monospace);
+  font-size: 0.9em;
+  line-height: 1.5;
+  padding: 10px 14px;
+  border-radius: var(--mt-radius-small, 5px);
+  background: var(--code-block-bg-color, var(--item-hover-bg-color));
+  tab-size: 4;
+}
+
+#write pre code {
+  padding: 0;
+  background: none;
+  font-size: inherit;
+}
+
+#write pre.md-rawblock {
+  color: var(--meta-content-color);
+  border-left: 3px solid var(--item-hover-bg-color);
+}
+
+#write .md-raw-inline {
+  font-family: var(--monospace);
+  font-size: 0.9em;
+  color: var(--meta-content-color);
+}
+
+#write blockquote {
+  padding: 0 1em;
+  border-left: 4px solid var(--item-hover-bg-color);
+  color: var(--meta-content-color);
+}
+
+#write blockquote.md-alert {
+  border-left-color: var(--primary-color);
+  color: inherit;
+}
+
+#write blockquote.md-alert::before {
+  display: block;
+  margin-top: 0.6em;
+  font-weight: 600;
+  font-size: 0.9em;
+  color: var(--primary-color);
+}
+
+#write .md-alert-note::before {
+  content: 'Note';
+}
+#write .md-alert-tip::before {
+  content: 'Tip';
+}
+#write .md-alert-important::before {
+  content: 'Important';
+}
+#write .md-alert-warning::before {
+  content: 'Warning';
+}
+#write .md-alert-caution::before {
+  content: 'Caution';
+}
+
+#write ul,
+#write ol {
+  padding-left: 1.8em;
+}
+
+#write li > p,
+#write li > .md-task-content > p {
+  margin: 0.2em 0;
+}
+
+#write .md-task-list-item {
+  list-style: none;
+}
+
+#write .md-task-list-item > input {
+  position: absolute;
+  left: -1.4em;
+  top: 0.35em;
+  margin: 0;
+  cursor: pointer;
+}
+
+#write .task-list-done > .md-task-content {
+  color: var(--meta-content-color);
+}
+
+#write table {
+  border-collapse: collapse;
+  display: block;
+  overflow-x: auto;
+  width: max-content;
+  max-width: 100%;
+}
+
+#write th,
+#write td {
+  position: relative;
+  min-width: 3em;
+  padding: 6px 12px;
+  border: 1px solid var(--active-file-bg-color);
+}
+
+#write th {
+  font-weight: 600;
+  background: var(--side-bar-bg-color);
+}
+
+#write hr {
+  height: 2px;
+  margin: 1.6em 0;
+  border: 0;
+  background: var(--item-hover-bg-color);
+}
+
+#write img {
+  max-width: 100%;
+  vertical-align: middle;
+}
+
+#write .md-img-error img {
+  min-width: 2em;
+  min-height: 1.5em;
+  outline: 1px dashed var(--meta-content-color);
+}
+
+/* ---------- Source mode (CodeMirror 6) ---------- */
+
+#typora-source .cm-editor {
+  height: 100%;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+#typora-source .cm-editor.cm-focused {
+  outline: none;
+}
+
+#typora-source .cm-scroller {
+  font-family: var(--monospace);
+  font-size: calc(var(--base-font-size) * 0.9);
+  line-height: 1.6;
+}
+
+#typora-source .cm-content {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px 30vh;
+  caret-color: var(--text-color);
+}
+
+#typora-source .cm-activeLine {
+  background: var(--item-hover-bg-color);
+}
+
+#typora-source .cm-cursor {
+  border-left-color: var(--text-color);
+}
+
+#typora-source .cm-selectionBackground,
+#typora-source .cm-focused .cm-selectionBackground {
+  background: var(--select-text-bg-color) !important;
+}
+
+#typora-source .cm-header {
+  font-weight: 700;
+  color: var(--primary-color);
+}
+#typora-source .cm-strong {
+  font-weight: 700;
+}
+#typora-source .cm-em {
+  font-style: italic;
+}
+#typora-source .cm-strikethrough {
+  text-decoration: line-through;
+}
+#typora-source .cm-link,
+#typora-source .cm-url {
+  color: var(--primary-color);
+}
+#typora-source .cm-comment,
+#typora-source .cm-formatting,
+#typora-source .cm-meta {
+  color: var(--meta-content-color);
+}
+#typora-source .cm-quote {
+  font-style: italic;
+  color: var(--meta-content-color);
+}

@@ -1,9 +1,11 @@
 <script lang="ts">
+  import type { Snippet } from 'svelte';
   import type { Platform } from '@marktype/platform';
   import type { Translate } from '@marktype/i18n';
   import logoUrl from '../assets/logo.svg';
 
-  let { platform, t, title }: { platform: Platform; t: Translate; title: string } = $props();
+  let { platform, t, title, menu }: { platform: Platform; t: Translate; title: string; menu?: Snippet } =
+    $props();
 
   let maximized = $state(false);
 
@@ -34,8 +36,9 @@
 </script>
 
 <header id="mt-titlebar">
+  <img class="mt-titlebar-logo" src={logoUrl} alt="" draggable="false" data-tauri-drag-region />
+  {@render menu?.()}
   <div class="mt-titlebar-drag" data-tauri-drag-region>
-    <img class="mt-titlebar-logo" src={logoUrl} alt="" draggable="false" data-tauri-drag-region />
     <span class="mt-titlebar-title" data-tauri-drag-region>{title}</span>
   </div>
 

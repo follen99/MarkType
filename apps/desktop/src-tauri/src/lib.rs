@@ -6,7 +6,13 @@ mod commands;
 /// Builds and runs the Tauri application.
 pub fn run() {
     tauri::Builder::default()
-        .invoke_handler(tauri::generate_handler![commands::app::app_info])
+        .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_opener::init())
+        .invoke_handler(tauri::generate_handler![
+            commands::app::app_info,
+            commands::fs::read_text_file,
+            commands::fs::write_text_file,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running MarkType");
 }

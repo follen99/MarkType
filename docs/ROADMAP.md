@@ -20,20 +20,23 @@ finestra creata in ~1,7 s al primo avvio a freddo; RAM privata totale **~206 MB*
 La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, `MemoryUsageTargetLevel`, un solo processo renderer).
 
 ## M1: Nucleo dell'editor → **alpha 1**
-- [ ] Schema ProseMirror (blocchi e inline CommonMark + GFM)
-- [ ] Ponte mdast ↔ ProseMirror (parse + serializzazione, stile configurabile)
-- [ ] Suite di test round-trip con fixture (stabilità: salvare due volte = stesso output)
-- [ ] DOM e classi compatibili con Typora (`#write`, `.md-fences`, `.md-focus`, …)
-- [ ] Modalità seamless: marcatori visibili solo al cursore
-- [ ] Input rules (`# `, `- `, `1. `, `> `, ```` ``` ````, `---`, `**x**`, …)
-- [ ] Scorciatoie di default stile Typora (SHORTCUTS.md)
-- [ ] Modalità sorgente (CodeMirror 6) con `Ctrl+/`
-- [ ] Split view con scroll sincronizzato
-- [ ] Apri / salva / salva con nome di un singolo file (scrittura atomica, LF/CRLF, BOM)
-- [ ] Barra del titolo personalizzata con menu
-- [ ] Tema chiaro e tema scuro di base
-- [ ] Barra di stato (parole, caratteri, righe, tempo di lettura, cursore)
-- Da testare: scrittura quotidiana su un file, scorciatoie, cambio di modalità, salvataggio.
+- [x] Schema ProseMirror (blocchi e inline CommonMark + GFM, front matter, math e alert preservati)
+- [x] Ponte mdast ↔ ProseMirror (parse + serializzazione, stile configurabile)
+- [x] Suite di test round-trip con fixture (stabilità: salvare due volte = stesso output)
+- [x] DOM e classi compatibili con Typora (`#write`, `.md-fences`, `.md-focus`, …)
+- [x] Modalità seamless: marcatori visibili solo al cursore
+- [x] Input rules (`# `, `- `, `1. `, `> `, `[ ] `, ```` ``` ````, `---`, `$$`, `**x**`, `*x*`, `` `x` ``, `~~x~~`, link, immagini)
+- [x] Scorciatoie di default stile Typora (SHORTCUTS.md)
+- [x] Modalità sorgente (CodeMirror 6) con `Ctrl+/`
+- [x] Split view con scroll sincronizzato (`Ctrl+Alt+/`)
+- [x] Apri / salva / salva con nome di un singolo file (scrittura atomica, LF/CRLF, BOM, conflitti)
+- [x] Barra del titolo personalizzata con menu
+- [x] Tema chiaro e tema scuro di base (seguono il sistema)
+- [x] Barra di stato (parole, caratteri, righe, tempo di lettura, cursore)
+- Un file aperto e non modificato non viene mai riformattato: anche Salva riscrive il testo originale.
+- Limiti noti di alpha 1: URL dei link e immagini si modificano da un dialog; matematica, HTML e note
+  a piè di pagina appaiono come sorgente (rendering in M3); su macOS il menu è nella finestra, non nella barra di sistema.
+- Da testare: scrittura quotidiana su un file, scorciatoie, cambio di modalità, salvataggio, `samples/showcase.md`.
 
 ## M2: Cartelle, schede, sidebar → **alpha 2**
 - [ ] Apri cartella, albero dei file (lazy, filtro per estensione)
@@ -93,6 +96,8 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 ## M7: Rifinitura → **v1.0**
 - [ ] Verifica dei target di prestazione (installer < 15 MB, avvio < 1 s, RAM < 150 MB, 10k righe)
 - [ ] Ridurre la RAM di WebView2 (oggi ~206 MB a vuoto, vedi le misure di M0)
+- [ ] Caricare CodeMirror solo al primo passaggio in modalità sorgente (bundle iniziale oggi 326 KB gzip)
+- [ ] Menu nativo nella barra di sistema su macOS
 - [ ] Accessibilità di base (navigazione da tastiera nei menu, contrasto)
 - [ ] README con screenshot, guida all'installazione per OS non firmati
 - [ ] CHANGELOG e release `v1.0.0`

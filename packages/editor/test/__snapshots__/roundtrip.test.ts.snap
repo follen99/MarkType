@@ -1,0 +1,33 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`messy fixtures become stable after one save > alert-blank-line.md 1`] = `
+"> [!WARNING]
+> Alert whose content starts after a blank line.
+"
+`;
+
+exports[`messy fixtures become stable after one save > mixed-style.md 1`] = `
+"# Setext heading
+
+- star bullet
+
+* plus bullet
+
+**bold** and *italic*
+
+\`\`\`python
+print("tilde fence")
+\`\`\`
+
+\`\`\`
+indented code
+\`\`\`
+
+1. paren list
+2. second
+
+Too many blank lines above.
+Trailing spaces hard break\\
+next line
+"
+`;
