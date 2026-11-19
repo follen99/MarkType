@@ -8,8 +8,8 @@
 - [x] Raccolta delle specifiche (SPEC.md)
 - [x] Architettura e struttura della repository (ARCHITECTURE.md)
 - [x] Documenti: roadmap, scorciatoie, temi, README, CONTRIBUTING
-- [ ] Testo della licenza GPL-3.0 in `LICENSE`
-- [ ] Toolchain di sviluppo (Rust, Node LTS, pnpm, MSVC Build Tools)
+- [x] Testo della licenza GPL-3.0 in `LICENSE`
+- [x] Toolchain di sviluppo (Rust, Node LTS, pnpm, MSVC Build Tools)
 - [ ] Scaffolding del monorepo pnpm (apps/desktop, apps/web, packages/*)
 - [ ] Progetto Tauri 2 che apre una finestra senza cornice
 - [ ] CI: lint, type-check, test TS e Rust su Windows/macOS/Linux

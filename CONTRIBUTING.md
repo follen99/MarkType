@@ -6,7 +6,7 @@
 |---|---|---|
 | [Rust](https://rustup.rs) | stable (via rustup) | On Windows, the MSVC toolchain |
 | [Node.js](https://nodejs.org) | current LTS | |
-| [pnpm](https://pnpm.io) | 9+ | `corepack enable` |
+| [pnpm](https://pnpm.io) | 10+ | `corepack enable pnpm`. Node 25+ no longer ships corepack: run `npm i -g corepack` first |
 | Tauri prerequisites | | [tauri.app/start/prerequisites](https://tauri.app/start/prerequisites/): Windows needs *Visual Studio Build Tools* (C++ workload) and WebView2 (already in Windows 11); Linux needs `webkit2gtk-4.1` and related packages |
 
 ## Commands
