@@ -1,11 +1,12 @@
 name: Web (GitHub Pages)
 
-# Publishes the web version (apps/web) to https://follen99.github.io/MarkType/ for every release tag,
-# so the web build always matches the latest desktop release. It can also be started by hand from the
-# Actions tab. Requires Settings → Pages → Source: "GitHub Actions".
+# Publishes the web version (apps/web) to https://follen99.github.io/MarkType/ on every push to main.
+# It runs on main rather than on release tags because the github-pages environment only accepts deployments
+# from the default branch. It can also be started by hand from the Actions tab.
+# Requires Settings → Pages → Source: "GitHub Actions".
 on:
   push:
-    tags: ['v*']
+    branches: [main]
   workflow_dispatch:
 
 permissions:

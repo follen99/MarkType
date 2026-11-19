@@ -128,6 +128,24 @@ pnpm build:web                               # build web (apps/web/dist)
 pnpm --filter @marktype/desktop tauri build --bundles nsis   # installer in target/release/bundle/nsis
 ```
 
+### Rilasci (GitHub Releases + GitHub Pages)
+1. Aggiornare la versione **ovunque** (la release fallisce se il tag non coincide con `Cargo.toml`):
+   `Cargo.toml` (`[workspace.package]`), ogni `package.json` di `apps/*` e `packages/*`, poi `cargo check`
+   per aggiornare `Cargo.lock`. Spostare le voci di `[Unreleased]` del CHANGELOG in una sezione `[x.y.z]`.
+   Versioni solo numeriche (`0.4.0`): il `.msi` di Windows rifiuta suffissi come `-alpha.4`.
+2. Commit + push su `main`, poi `git tag -a vX.Y.Z -m "..."` e `git push origin vX.Y.Z`.
+   **Mai** concatenare commit e tag nello stesso comando PowerShell: se il commit fallisce il tag finisce sul commit
+   sbagliato (è successo; il messaggio di commit va passato con `git commit -F file`).
+3. Il tag avvia `release.yml`: crea la bozza, poi compila gli installer Windows/macOS/Linux in parallelo e li
+   allega; i tag `v0.x` sono pre-release. La versione web invece la pubblica `pages.yml` a **ogni push su `main`**
+   (https://follen99.github.io/MarkType/; si può lanciare anche a mano da Actions): l'ambiente `github-pages`
+   rifiuta i deploy dai tag, quindi la web segue `main`, non le release.
+4. L'utente apre la bozza in https://github.com/follen99/MarkType/releases e preme **Publish release**
+   (`gh` non è installato, le bozze non sono visibili dall'API senza autenticazione).
+5. Stato delle run senza `gh`: `curl -s https://api.github.com/repos/follen99/MarkType/actions/runs?per_page=5`.
+6. La build web di produzione si prova in locale con il server `web-dist` di `.claude/launch.json`
+   (`vite preview`, `http://localhost:4173/MarkType/`), dopo `pnpm build:web`.
+
 ### Provare l'interfaccia senza build Rust
 Il file `.claude/launch.json` nella cartella **padre** (`Desktop/marktype/`) definisce il server `web`
 (Vite su `http://localhost:5173/MarkType/`). Con il browser integrato: `preview_start` → `navigate` a `/MarkType/`.

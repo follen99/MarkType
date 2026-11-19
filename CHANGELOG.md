@@ -11,7 +11,7 @@ First public pre-release: installers for Windows, macOS and Linux, and the web v
 
 ### Added
 - Release pipeline: a `v*` tag builds the installers on every OS into one draft release;
-  `v0.x` tags are marked as pre-releases. The web version is deployed to GitHub Pages on every release.
+  `v0.x` tags are marked as pre-releases. The web version is deployed to GitHub Pages from `main`.
 - Project specification, architecture, roadmap, shortcuts and theme documentation.
 - Repository layout.
 - pnpm monorepo: shared packages (`platform`, `i18n`, `themes`, `app`), Tauri 2 desktop app, web app skeleton.
