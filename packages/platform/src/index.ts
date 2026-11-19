@@ -120,6 +120,31 @@ export interface DraftsApi {
   list(): Promise<Draft[]>;
 }
 
+/** A Typora-compatible theme installed by the user. URLs are loadable as `<link href>`. */
+export interface UserTheme {
+  /** File stem, unique among user themes. */
+  id: string;
+  name: string;
+  url: string;
+  dark: boolean;
+  /** `<id>.user.css`, applied on top of this theme only. */
+  userCssUrl: string | null;
+}
+
+export interface UserThemeList {
+  themes: UserTheme[];
+  /** `base.user.css`, applied on top of every theme. */
+  baseUserCssUrl: string | null;
+}
+
+/** The user themes folder (desktop only). */
+export interface ThemesApi {
+  list(): Promise<UserThemeList>;
+  /** Called (possibly several times in a row) when files in the themes folder change. */
+  onChange(cb: () => void): Promise<Unsubscribe>;
+  openFolder(): Promise<void>;
+}
+
 /** Small persistent key/value store for UI state (until settings.json lands in M6). */
 export interface PrefsApi {
   get<T>(key: string, fallback: T): T;
@@ -136,6 +161,8 @@ export interface Platform {
   /** null where folders cannot be opened (web). */
   readonly folders: FoldersApi | null;
   readonly drafts: DraftsApi;
+  /** null where there is no themes folder (web): only the built-in themes are offered. */
+  readonly themes: ThemesApi | null;
   readonly prefs: PrefsApi;
   /** URL the webview can load for an image `src` written in the document `doc`. */
   resolveAssetUrl(doc: FileRef | null, src: string): string;

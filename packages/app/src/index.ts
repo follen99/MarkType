@@ -4,13 +4,15 @@ import { createTranslator, negotiateLocale } from '@marktype/i18n';
 import '@marktype/themes/base.css';
 import '@marktype/themes/chrome.css';
 import '@marktype/editor/editor.css';
-import { applySystemTheme } from './theme.ts';
+import { ThemeManager } from './theme.svelte.ts';
 import App from './App.svelte';
 
 /** Mounts the MarkType UI. Each app (desktop, web) calls this with its own Platform. */
 export function startApp(platform: Platform, target: HTMLElement): void {
   document.body.classList.add(`os-${platform.os}`, `platform-${platform.kind}`);
-  applySystemTheme();
   const t = createTranslator(negotiateLocale(navigator.languages));
-  mount(App, { target, props: { platform, t } });
+  // The theme is applied before the UI is mounted, so the first paint already uses it.
+  const themes = new ThemeManager(platform.themes, platform.prefs, t);
+  themes.start();
+  mount(App, { target, props: { platform, t, themes } });
 }

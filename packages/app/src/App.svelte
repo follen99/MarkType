@@ -11,17 +11,24 @@
   import FindBar, { type FindBarApi } from './chrome/FindBar.svelte';
   import Sidebar from './sidebar/Sidebar.svelte';
   import ContextMenu from './ui/ContextMenu.svelte';
+  import type { SlotItem } from './chrome/MenuBar.svelte';
+  import type { ThemeManager } from './theme.svelte.ts';
   import { Dialogs } from './dialogs.svelte.ts';
   import { Workspace } from './workspace.svelte.ts';
   import { FileTree } from './filetree.svelte.ts';
   import { FileActions } from './sidebar/fileactions.ts';
   import { SidebarState } from './sidebar/sidebar.svelte.ts';
   import { ContextMenuState } from './ui/contextmenu.svelte.ts';
-  import { DEFAULT_KEYBINDINGS, buildShortcutMap, type CommandId } from './commands/registry.ts';
+  import {
+    DEFAULT_KEYBINDINGS,
+    buildShortcutMap,
+    type CommandId,
+    type MenuSlot,
+  } from './commands/registry.ts';
   import { shortcutCandidates } from './commands/keys.ts';
 
-  // `platform` and `t` are fixed for the lifetime of the app, so reading them once is intended.
-  let { platform, t }: { platform: Platform; t: Translate } = $props();
+  // `platform`, `t` and `themes` are fixed for the lifetime of the app, so reading them once is intended.
+  let { platform, t, themes }: { platform: Platform; t: Translate; themes: ThemeManager } = $props();
 
   // svelte-ignore state_referenced_locally
   const { folders, prefs } = platform;
@@ -143,6 +150,10 @@
       case 'fullscreen':
         fullscreen = !fullscreen;
         return void platform.window.setFullscreen(fullscreen);
+      case 'followSystemTheme':
+        return themes.toggleFollowSystem();
+      case 'openThemesFolder':
+        return themes.openFolder();
       case 'about':
         return void dialogs
           .alert('MarkType', t('about.message', { version: platform.appVersion }), t('dialog.ok'))
@@ -164,9 +175,34 @@
         return active?.mode === 'source';
       case 'toggleSplit':
         return active?.mode === 'split';
+      case 'followSystemTheme':
+        return themes.followSystem;
       default:
         return undefined;
     }
+  }
+
+  function isVisible(id: CommandId): boolean {
+    return id !== 'openThemesFolder' || platform.themes !== null;
+  }
+
+  // Themes menu: light and dark themes in two groups, so "follow system" shows one choice per group.
+  function slotItems(slot: MenuSlot['slot']): SlotItem[] {
+    if (slot !== 'themes') return [];
+    const items: SlotItem[] = [];
+    for (const dark of [false, true]) {
+      items.push({ kind: 'header', label: t(dark ? 'theme.groupDark' : 'theme.groupLight') });
+      for (const theme of themes.all.filter((option) => option.dark === dark)) {
+        items.push({
+          kind: 'item',
+          key: theme.id,
+          label: theme.name,
+          checked: themes.isSelected(theme),
+          run: () => themes.select(theme.id),
+        });
+      }
+    }
+    return items;
   }
 
   function onKeydown(event: KeyboardEvent) {
@@ -224,7 +260,7 @@
 <div id="mt-root">
   <TitleBar {platform} {t} {title}>
     {#snippet menu()}
-      <MenuBar {t} {isMac} {shortcutOf} {isChecked} {run} />
+      <MenuBar {t} {isMac} {shortcutOf} {isChecked} {isVisible} {slotItems} {run} />
     {/snippet}
   </TitleBar>
   <div class="mt-body" class:sidebar-hidden={!sidebar.visible}>

@@ -13,4 +13,5 @@ export { defaultMarkdownStyle, type MarkdownStyle } from './markdown/processor.t
 export { parseMarkdown } from './markdown/parse.ts';
 export { serializeMarkdown } from './markdown/serialize.ts';
 export { schema } from './schema.ts';
+export { refreshPreviews } from './render/blocks.ts';
 export type { TextStats } from './stats.ts';

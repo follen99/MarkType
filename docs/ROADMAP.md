@@ -72,11 +72,12 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - Da testare: documenti tecnici reali con codice, diagrammi e formule; `samples/showcase.md`.
 
 ## M4: Temi → **alpha 4**
-- [ ] Loader dei temi (base → tema → base.user.css → tema.user.css)
-- [ ] Cartella temi utente + live reload
-- [ ] Temi inclusi: light, dark, paper, Formal Dark Pro
-- [ ] Menu Temi con cambio senza riavvio
-- [ ] Test con temi Typora popolari (screenshot di confronto)
+- [x] Loader dei temi (base → tema → base.user.css → tema.user.css), sempre dopo i CSS caricati al bisogno
+- [x] Cartella temi utente (`%APPDATA%\MarkType\themes`) + live reload (crate `notify`), percorsi relativi funzionanti
+- [x] Temi inclusi: Chiaro, Carta, Scuro, Formal Dark Pro
+- [x] Menu Temi con cambio senza riavvio, gruppi chiari/scuri, "Segui il tema del sistema"
+- [~] Test di compatibilità: Formal Dark Pro (screenshot nel browser integrato) e tema di prova in `scripts/smoke-desktop.mjs`;
+  i temi della galleria Typora li prova l'utente
 - Da testare: installare 2-3 temi Typora scaricati dalla galleria.
 
 ## M5: Immagini e appunti → **alpha 5**

@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.3.0` (alpha 3, prima pre-release pubblica su GitHub).
+> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.4.0` (alpha 4, temi).
 
 ## 1. Dove siamo
 
@@ -13,46 +13,56 @@
 | M1 Nucleo editor → alpha 1 | ✅ completata | `9a1ef18` | sì, "funziona tutto" |
 | M2 Cartelle, schede, sidebar → alpha 2 | ✅ completata | `8288b22` | sì, "funziona tutto bene" |
 | M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | **no, in attesa di test** |
-| M4 Temi → alpha 4 | ⏭️ **prossima** | | |
-| M5 Immagini e appunti → alpha 5 | da fare | | |
+| M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
+| M5 Immagini e appunti → alpha 5 | ⏭️ **prossima** | | |
 | M6 Export e integrazione OS → beta | da fare | | |
 | M7 Rifinitura → v1.0 | da fare | | |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
 
+**Modalità automatica (richiesta dall'utente il 2026-11-19):** un branch per milestone (`m5-images`…), merge su
+`main` solo con tutto verde (check, test, clippy, prettier, build installer, `scripts/smoke-desktop.mjs`), una
+release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o che finisca la finestra di 5 ore.
+
 ### Ultima build (Windows 11, release)
-- Installer NSIS `MarkType_0.1.0_x64-setup.exe`: **4,43 MB** (target < 15 MB). `marktype.exe`: 7,41 MB.
+- Installer NSIS: **4,46 MB** (target < 15 MB).
 - RAM a vuoto (M0): ~206 MB privati, quasi tutti WebView2 → **sopra il target di 150 MB**, da ottimizzare in M7.
 - Bundle JS iniziale ~330 KB gzip; Mermaid, KaTeX, linguaggi di highlight, DOMPurify e gemoji sono chunk lazy.
 
-## 2. Prossimo passo: M4 Temi
+### Come sono fatti i temi (M4)
+- Rust `commands/themes.rs`: `list_themes`, `watch_themes` (evento `themes-changed`), `open_themes_folder`,
+  `user_config_dir()` = `%APPDATA%\MarkType` / `~/Library/Application Support/MarkType` / `~/.config/marktype`
+  (riusarla per `settings.json` in M6; **non** `app_config_dir`, che usa l'identificativo del bundle).
+- `apps/desktop/src/platform/tauri.ts` `assetUrlWithDirs()`: URL del protocollo asset con le `/` visibili, così gli
+  `url()` relativi dei temi funzionano (`convertFileSrc` codifica anche i separatori).
+- `packages/app/src/theme.svelte.ts` `ThemeManager`: tre `<link>` (`mt-theme`, `mt-theme-base-user`,
+  `mt-theme-user`) tenuti in fondo a `<head>` (i CSS lazy vengono spostati prima); classe `mt-theme-dark` su `<html>`
+  e `color-scheme`; al `load` del tema chiama `refreshPreviews()` dell'editor (Mermaid ridisegnato).
+- Colori dei token predefiniti in `base.css` (variante scura con `:where(.mt-theme-dark)`, stessa specificità).
+- Menu dinamici: `MenuSlot` in `registry.ts`, `slotItems`/`isVisible` in `MenuBar.svelte`.
 
-Obiettivo (SPEC §12, [THEMES.md](THEMES.md)): temi Typora che funzionano senza modifiche.
+## 2. Prossimo passo: M5 Immagini e appunti
 
-1. **Rust** `commands/themes.rs`: cartella temi utente (`app_config_dir()/themes`, cioè `%APPDATA%\MarkType\themes`),
-   `list_themes` (file `*.css` + `*.meta.json` opzionale; ignorare `base.user.css` e `*.user.css`), `read_theme`,
-   watcher per il live reload (crate `notify`) che emette un evento Tauri; comando per aprire la cartella.
-2. **Asset dei temi**: i temi usano `url('./nome/font.woff')` relativi al CSS. Non iniettare il CSS come testo:
-   caricarlo come `<link>` dal protocollo asset (`convertFileSrc`) così i percorsi relativi funzionano, e dare allo
-   scope dell'asset protocol la cartella temi.
-3. **Frontend**: `packages/app/src/theme.ts` oggi sceglie light/dark dal sistema (`setThemeUrl`). Sostituirlo con un
-   theme manager: ordine `base.css` → tema → `base.user.css` → `<tema>.user.css`; tema scelto salvato in prefs;
-   menu **Temi** nella barra (nuovo `MenuDef`, voci dinamiche, spunta sul tema attivo); opzione "segui il sistema"
-   (coppia tema chiaro/scuro).
-4. **Temi inclusi**: light, dark (esistono in `packages/themes/builtin/`), aggiungere **paper/sepia**, e
-   **Formal Dark Pro** (già copiato in `packages/themes/builtin/formal-dark-pro/`, licenza MIT, va solo registrato).
-5. **Compatibilità**: verificare con formal-dark-pro.css (usa `#write`, `.md-fences`, `.cm-s-inner`, `.md-focus`,
-   `#typora-sidebar`, `.outline-item`, `.file-list-item`, `.md-meta`, `.md-task-list-item`, `.md-alert`…) e con 2-3
-   temi popolari della galleria Typora. Il DOM è già compatibile; mancano probabilmente classi Typora come
-   `.typora-export` / `content` (wrapper), `#write.first-line` ecc. → controllare i selettori del tema e aggiungere
-   classi dove serve. I temi Typora definiscono spesso solo colori per il loro sidebar: verificare la nostra chrome
-   (`packages/themes/chrome.css`), che usa le variabili Typora.
-6. Test: screenshot di confronto nel browser integrato (vedi §5).
+Obiettivo: SPEC §10 e §11.
 
-Poi M5 (immagini: incolla `Ctrl+V` → `./assets`, rinomina in caso di conflitto `-1`, `-2`, mai sovrascrivere;
-pattern nome; documenti non salvati → cartella temporanea; front matter `typora-copy-images-to`; incolla
-HTML → Markdown con `rehype-parse` + `rehype-remark`).
+1. **Rust** `commands/images.rs`: `save_image(doc_path, bytes|source_path, name_hint)` → calcola la destinazione
+   (default `./assets`; `./${filename}.assets`; cartella personalizzata; front matter `typora-copy-images-to` passato
+   dal frontend), crea la cartella, sceglie un nome libero (`nome.png`, `nome-1.png`, … **mai sovrascrivere**:
+   usare `OpenOptions::create_new`), restituisce il percorso relativo al documento con `/` e spazi codificati.
+   Test con `tempfile`.
+2. **Pattern dei nomi**: `${filename}-${timestamp}` di default; token `${filename}`, `${date}`, `${time}`,
+   `${timestamp}`, `${hash}`, `${original}`. Funzione pura in TS (testabile) o in Rust.
+3. **Documento non salvato**: immagini in una cartella temporanea (`app_data_dir/pending-images/<id>`), URL
+   asset per la visualizzazione; al primo salvataggio spostarle nella destinazione e riscrivere i percorsi nel testo.
+4. **Frontend/editor**: gestore `paste`/`drop` in `packages/editor` (ProseMirror `handlePaste`/`handleDrop` e
+   CodeMirror) che chiama un callback dell'host (`onImage(file) → Promise<src>`), inserisce `![](src)`.
+   Il Platform espone `images.save(...)`; il web per ora usa `URL.createObjectURL` (lo zip è Fase 2).
+5. **Incolla HTML → Markdown**: `rehype-parse` + `rehype-remark` + `remark-stringify` (lazy), solo se negli appunti
+   c'è `text/html` e non si sta incollando dentro un blocco di codice; tabelle, liste, link, immagini, codice.
+6. Asset protocol: le immagini nella cartella del documento sono già nello scope (`fs.rs` `allow_assets_near`).
+7. Test: fixture di round-trip per i percorsi con spazi; unit test dei nomi; smoke desktop per salvataggio senza
+   sovrascrittura (estendere `scripts/smoke-desktop.mjs`).
 
 ## 3. Mappa del codice
 
@@ -126,6 +136,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 pnpm exec prettier --write . ; cargo fmt --all
 pnpm build:web                               # build web (apps/web/dist)
 pnpm --filter @marktype/desktop tauri build --bundles nsis   # installer in target/release/bundle/nsis
+node scripts/smoke-desktop.mjs               # dopo la build: test end-to-end dell'app vera (temi utente)
 ```
 
 ### Rilasci (GitHub Releases + GitHub Pages)
@@ -163,7 +174,7 @@ Le funzioni su cartelle e file nativi si provano solo nell'app desktop (le prova
 | CodeMirror caricato subito anche se si usa solo la vista visuale | M7: import dinamico in `host.ts` |
 | Menu nativo su macOS (ora menu nella finestra) | M7 |
 | Più finestre (oggi solo schede) | dopo v1.0 o M7 |
-| Albero file aggiornato solo al focus della finestra (nessun watcher) | M4 introduce `notify`: riusarlo |
+| Albero file aggiornato solo al focus della finestra (nessun watcher) | `notify` è ora una dipendenza (M4): riusarlo |
 | Note a piè di pagina: niente popup/modifica visuale | dopo v1.0 |
 | Apice/pedice `^x^` / `~x~` (conflitto con il barrato `~x~` di GFM) | solo come opzione, dopo v1.0 |
 | Scorciatoie personalizzabili (`keybindings.json`), pannello impostazioni | M6 |

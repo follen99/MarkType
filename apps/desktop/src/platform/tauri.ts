@@ -1,4 +1,5 @@
 import { convertFileSrc, invoke } from '@tauri-apps/api/core';
+import { listen } from '@tauri-apps/api/event';
 import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open, save } from '@tauri-apps/plugin-dialog';
@@ -23,12 +24,27 @@ interface AppInfo {
   os: string;
 }
 
+interface RustThemeList {
+  dir: string;
+  themes: { id: string; name: string; path: string; dark: boolean; userCss: string | null }[];
+  baseUserCss: string | null;
+}
+
 type RustWriteResult = { status: 'ok'; stamp: FileStamp } | { status: 'conflict'; current: FileStamp | null };
 
 const KNOWN_OS: readonly OsName[] = ['windows', 'macos', 'linux', 'android', 'ios'];
 const MARKDOWN_FILTER = { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx', 'txt'] };
 
 const fileRef = (path: string): FileRef => ({ id: path, name: basename(path) });
+
+/**
+ * Asset-protocol URL that keeps the folder structure visible (`convertFileSrc` encodes the separators too),
+ * so relative `url('./my-theme/font.woff')` inside a stylesheet resolves next to it. Tauri decodes and
+ * canonicalizes the path, so forward slashes work on Windows; `/Users/x` becomes `localhost//Users/x`.
+ */
+function assetUrlWithDirs(path: string): string {
+  return convertFileSrc('') + path.split(/[\\/]/).map(encodeURIComponent).join('/');
+}
 
 /** Local file a markdown path refers to, relative to the document `doc`. */
 function localPath(doc: FileRef | null, src: string): string | null {
@@ -98,6 +114,28 @@ export async function createTauriPlatform(): Promise<Platform> {
       save: (draft) => invoke('save_draft', { draft }),
       remove: (id) => invoke('remove_draft', { id }),
       list: () => invoke('list_drafts'),
+    },
+    themes: {
+      async list() {
+        const result = await invoke<RustThemeList>('list_themes');
+        const url = (path: string | null) => (path ? assetUrlWithDirs(path) : null);
+        return {
+          themes: result.themes.map((theme) => ({
+            id: theme.id,
+            name: theme.name,
+            url: assetUrlWithDirs(theme.path),
+            dark: theme.dark,
+            userCssUrl: url(theme.userCss),
+          })),
+          baseUserCssUrl: url(result.baseUserCss),
+        };
+      },
+      async onChange(cb) {
+        const unlisten = await listen('themes-changed', () => cb());
+        await invoke('watch_themes');
+        return unlisten;
+      },
+      openFolder: () => invoke('open_themes_folder'),
     },
     prefs: localPrefs('marktype.'),
     resolveAssetUrl(doc, src) {
