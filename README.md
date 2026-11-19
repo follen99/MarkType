@@ -3,7 +3,9 @@
 **A lightweight, Typora-style WYSIWYG Markdown editor for Windows, macOS and Linux.**
 *Un editor Markdown WYSIWYG leggero, in stile Typora, per Windows, macOS e Linux.*
 
-> 🚧 **Status: in development (pre-alpha).** Nothing is ready to download yet. Progress: [docs/ROADMAP.md](docs/ROADMAP.md).
+> 🚧 **Status: alpha.** Early test builds are on [GitHub Releases](https://github.com/follen99/MarkType/releases)
+> and in the browser at **[follen99.github.io/MarkType](https://follen99.github.io/MarkType/)**.
+> Progress: [docs/ROADMAP.md](docs/ROADMAP.md).
 
 ## Features (planned for v1.0)
 
@@ -16,11 +18,11 @@
 - **Rich rendering**: syntax highlighting, Mermaid, KaTeX math, GFM tables and task lists, footnotes, front matter, `[toc]`, GitHub alerts.
 - **Export** to PDF, HTML and (with Pandoc) DOCX, ODT, EPUB, LaTeX…
 - **Lightweight**: installer under 15 MB, startup under 1 s (built with [Tauri 2](https://tauri.app) and Rust).
-- A **web version** on GitHub Pages will follow.
+- A **web version** on [GitHub Pages](https://follen99.github.io/MarkType/) (single file open/save, no folders).
 
 ## Installation
 
-Installers will be published on [GitHub Releases](https://github.com/follen99/MarkType/releases)
+Download the installer from [GitHub Releases](https://github.com/follen99/MarkType/releases)
 (`.exe`/`.msi` for Windows, `.dmg` for macOS, `.AppImage`/`.deb`/`.rpm` for Linux).
 
 The builds are not code-signed yet:
