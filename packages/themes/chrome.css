@@ -708,3 +708,88 @@
   background: var(--item-hover-bg-color);
   color: var(--control-text-hover-color);
 }
+
+/* ---------- Settings panel ---------- */
+
+.mt-dialog.mt-settings {
+  width: min(560px, 100%);
+  max-height: calc(100vh - 48px);
+  display: flex;
+  flex-direction: column;
+}
+
+.mt-settings-body {
+  overflow-y: auto;
+  margin: 0 -22px 14px;
+  padding: 0 22px;
+}
+
+.mt-settings-body section {
+  padding: 10px 0 12px;
+  border-bottom: 1px solid var(--active-file-bg-color);
+}
+
+.mt-settings-body section:last-child {
+  border-bottom: 0;
+}
+
+.mt-settings-body h3 {
+  margin: 0 0 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-color);
+}
+
+.mt-settings-row {
+  display: grid;
+  grid-template-columns: minmax(140px, 38%) 1fr;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 8px;
+  color: var(--control-text-color);
+}
+
+.mt-settings-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+  color: var(--control-text-color);
+}
+
+.mt-settings-check input {
+  margin: 0;
+}
+
+.mt-settings-note {
+  margin: 0 0 8px;
+  font-size: 12px;
+  opacity: 0.75;
+  color: var(--control-text-color);
+}
+
+.mt-settings-path {
+  font-family: var(--monospace, monospace);
+  word-break: break-all;
+  user-select: text;
+}
+
+.mt-settings-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.mt-settings-status {
+  font-size: 12px;
+  color: var(--control-text-color);
+}
+
+@media (max-width: 520px) {
+  .mt-settings-row {
+    grid-template-columns: 1fr;
+    gap: 4px;
+  }
+}

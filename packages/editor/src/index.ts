@@ -18,3 +18,4 @@ export { schema } from './schema.ts';
 export { refreshPreviews } from './render/blocks.ts';
 export type { TextStats } from './stats.ts';
 export { htmlToMarkdown } from './markdown/html.ts';
+export { renderHtml, slugify, cleanExportDom, type RenderedHtml, type RenderHtmlOptions } from './export.ts';

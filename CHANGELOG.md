@@ -5,6 +5,27 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.6.0] - 2026-11-19 (beta 1)
+
+### Added
+- Settings in `settings.json` (`%APPDATA%\MarkType`, `~/Library/Application Support/MarkType`,
+  `~/.config/marktype`), editable by hand. The preferences of earlier versions move there on the first start.
+  A broken file is reported and never overwritten.
+- Settings panel (File → Settings…, `Ctrl+,`): language, autosave, reopen the last folder, font size, page
+  width, image options (destination, custom folder, file names, ask for the name), export options, and buttons
+  to open `settings.json`, `keybindings.json` and the themes folder.
+- Custom shortcuts in `keybindings.json` (`"bold": "Mod+Shift+B"`, a list, or `null`); command names in
+  docs/SHORTCUTS.md.
+- Export (File menu): standalone HTML with the theme CSS inside (images relative to the HTML file or embedded,
+  theme fonts embedded, headings with anchors and working `[toc]` links); PDF through the print dialog
+  ("Save as PDF"); Word, OpenDocument, RTF, EPUB and LaTeX through Pandoc when it is installed (its path can
+  be set in Settings).
+- Command line: `marktype file.md`, `marktype ./folder`.
+- Single instance: opening a file while MarkType runs opens it in a tab of the existing window.
+- Windows installer: `.md`/`.markdown` file association and "Open with MarkType" in the Explorer context menu
+  of folders, folder backgrounds and Markdown files. macOS: files opened from the Finder.
+- Web version: HTML and PDF export (the HTML file is downloaded, images embedded).
+
 ## [0.5.0] - 2026-11-19 (alpha 5)
 
 ### Added

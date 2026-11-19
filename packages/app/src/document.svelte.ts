@@ -421,6 +421,11 @@ export class DocumentController {
     this.host?.focus();
   }
 
+  /** The current text (what Save would write). */
+  markdown(): string {
+    return this.host?.getMarkdown() ?? '';
+  }
+
   /**
    * Closes the editor. With `discard`, also forgets the crash-recovery copy; the returned promise
    * settles once it is gone (await it before the window closes).

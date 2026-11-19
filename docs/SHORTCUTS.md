@@ -1,7 +1,7 @@
 # Scorciatoie da tastiera (default)
 
 I default ricalcano quelli di Typora su Windows/Linux. Su macOS `Ctrl` diventa `Cmd` e `Alt` diventa `Option`.
-Si potranno personalizzare in `keybindings.json` o dal pannello impostazioni (M6).
+Si personalizzano in `keybindings.json` (vedi in fondo).
 
 **Layout di tastiera.** Una scorciatoia viene riconosciuta prima dal carattere che il tasto produce, poi dalla posizione
 fisica del tasto sulla tastiera US. Sulla tastiera italiana quindi `Ctrl+-` e `Ctrl++` agiscono sul livello del titolo,
@@ -72,3 +72,35 @@ fisica del tasto sulla tastiera US. Sulla tastiera italiana quindi `Ctrl+-` e `C
 | Zoom: reimposta / più / meno | `Ctrl+Shift+0` / `Ctrl+Shift+=` / `Ctrl+Shift+-` |
 | Scheda successiva / precedente | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
 | Strumenti per sviluppatori (build di debug) | `Shift+F12` |
+
+## Personalizzare le scorciatoie (`keybindings.json`)
+
+Impostazioni (`Ctrl+,`) → **Apri keybindings.json** apre il file (in `%APPDATA%/MarkType` su Windows,
+`~/Library/Application Support/MarkType` su macOS, `~/.config/marktype` su Linux). Esempio:
+
+```json
+{
+  "bold": "Mod+Shift+B",
+  "toggleSidebar": ["Mod+Shift+L", "F8"],
+  "underline": null
+}
+```
+
+- `Mod` è `Ctrl` su Windows/Linux e `Cmd` su macOS; gli altri modificatori sono `Ctrl`, `Alt`, `Shift`.
+- Un comando elencato perde le sue scorciatoie predefinite; `null` lo lascia senza scorciatoia.
+- Se una scorciatoia è usata da due comandi vince quella scritta nel file.
+- Le chiavi che iniziano con `//` sono commenti. Le modifiche valgono dal prossimo avvio.
+
+Nomi dei comandi:
+
+- File: `newFile` `openFile` `openFolder` `quickOpen` `save` `saveAs` `toggleAutosave` `exportHtml`
+  `exportPdf` `exportDocx` `exportOdt` `exportRtf` `exportEpub` `exportLatex` `preferences` `openKeybindings`
+  `closeTab` `reopenTab` `nextTab` `prevTab` `closeWindow`
+- Modifica: `undo` `redo` `selectAll` `selectWord` `selectLine` `selectScope` `deleteWord` `find` `replace`
+  `findNext` `findPrev` `showSearch`
+- Paragrafo: `paragraph` `heading1` … `heading6` `headingUp` `headingDown` `quote` `bulletList`
+  `orderedList` `taskList` `codeBlock` `mathBlock` `horizontalRule` `table` `indent` `outdent` `exitBlock`
+- Formato: `bold` `italic` `underline` `inlineCode` `strike` `highlight` `clearFormat` `link` `image`
+  `insertImageFile`
+- Vista: `toggleSidebar` `showOutline` `showFiles` `toggleSource` `toggleSplit` `cycleMode` `zoomIn`
+  `zoomOut` `zoomReset` `fullscreen` `followSystemTheme` `openThemesFolder` `about`

@@ -1,16 +1,22 @@
 //! MarkType desktop core. Commands live in [`commands`]; each module maps to one area of
-//! `docs/ARCHITECTURE.md` (fs, folder, search, drafts, and later images, settings, themes, export).
+//! `docs/ARCHITECTURE.md` (fs, folder, search, drafts, images, settings, themes, launch, export).
 
 mod commands;
 
-use commands::{app, drafts, folder, fs, images, search, themes};
+use commands::{app, drafts, export, folder, fs, images, launch, search, settings, themes};
 
 /// Builds and runs the Tauri application.
 pub fn run() {
-    tauri::Builder::default()
+    let app = tauri::Builder::default()
+        // First: a second launch hands its arguments to this instance and exits.
+        .plugin(tauri_plugin_single_instance::init(|app, argv, cwd| {
+            launch::on_second_instance(app, argv, cwd);
+        }))
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_opener::init())
         .manage(themes::ThemeWatcher::default())
+        .manage(settings::SettingsLock::default())
+        .manage(launch::initial_state())
         .invoke_handler(tauri::generate_handler![
             app::app_info,
             fs::read_text_file,
@@ -35,7 +41,28 @@ pub fn run() {
             images::read_image_file,
             images::pending_images_root,
             images::discard_pending_images,
+            settings::load_settings,
+            settings::update_settings,
+            settings::read_keybindings,
+            settings::open_config_file,
+            launch::take_launch_paths,
+            export::pandoc_version,
+            export::pandoc_export,
+            export::open_export,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running MarkType");
+        .build(tauri::generate_context!())
+        .expect("error while building MarkType");
+
+    app.run(|handle, event| {
+        // Finder: double click on a .md file, "Open with", drop on the Dock icon.
+        #[cfg(any(target_os = "macos", target_os = "ios"))]
+        if let tauri::RunEvent::Opened { urls } = &event {
+            let paths = urls
+                .iter()
+                .filter_map(|url| launch::launch_path(url.as_str(), std::path::Path::new("/")))
+                .collect();
+            launch::deliver(handle, paths);
+        }
+        let _ = (handle, event);
+    });
 }
