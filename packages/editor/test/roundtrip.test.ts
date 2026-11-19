@@ -47,6 +47,36 @@ describe('document structure', () => {
     expect(b.marks.map((m) => m.type.name)).toEqual(['underline']);
   });
 
+  it('parses ==highlight==, inline HTML tags and <br>', () => {
+    const p = parseMarkdown('a ==b== <kbd>K</kbd> x<br/>y\n').firstChild!;
+    const names = (i: number) => p.child(i).marks.map((m) => m.type.name);
+    expect(p.child(1).text).toBe('b');
+    expect(names(1)).toEqual(['highlight']);
+    expect(p.child(3).text).toBe('K');
+    expect(p.child(3).marks[0]!.attrs.tag).toBe('kbd');
+    const br = p.child(5);
+    expect(br.type.name).toBe('hard_break');
+    expect(br.attrs.raw).toBe('<br/>');
+  });
+
+  it('keeps an unclosed inline tag as source', () => {
+    const p = parseMarkdown('a <kbd> b\n').firstChild!;
+    expect(p.child(1).marks[0]!.type.name).toBe('raw');
+    expect(p.child(1).text).toBe('<kbd>');
+  });
+
+  it('turns a paragraph with only [toc] into a TOC block', () => {
+    const doc = parseMarkdown('[TOC]\n\n# A\n');
+    expect(doc.firstChild!.type.name).toBe('toc');
+    expect(serializeMarkdown(doc)).toBe('[TOC]\n\n# A\n');
+  });
+
+  it('marks footnote references and definitions', () => {
+    const doc = parseMarkdown('x[^1]\n\n[^1]: note\n');
+    expect(doc.firstChild!.child(1).marks[0]!.attrs.kind).toBe('footnote');
+    expect(doc.child(1).attrs.kind).toBe('footnote');
+  });
+
   it('keeps unknown syntax as raw source', () => {
     const doc = parseMarkdown('[ref]: https://example.com\n');
     expect(doc.firstChild!.type.name).toBe('raw_block');

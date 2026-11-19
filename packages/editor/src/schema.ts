@@ -5,16 +5,40 @@ import { Schema, type DOMOutputSpec, type NodeSpec, type MarkSpec, type Attrs } 
  * so Typora themes apply unchanged. See docs/THEMES.md.
  */
 
-export type RawBlockKind = 'html' | 'frontmatter' | 'math' | 'markdown';
-export type RawInlineKind = 'html' | 'math' | 'markdown';
+export type RawBlockKind = 'html' | 'frontmatter' | 'math' | 'footnote' | 'markdown';
+export type RawInlineKind = 'html' | 'math' | 'footnote' | 'markdown';
 export type CellAlign = 'left' | 'center' | 'right' | null;
 export const ALERT_TYPES = ['note', 'tip', 'important', 'warning', 'caution'] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
+
+/** Inline HTML tags without attributes that are edited as formatting (`<kbd>x</kbd>`). */
+export const HTML_TAG_MARKS = [
+  'kbd',
+  'sup',
+  'sub',
+  'mark',
+  'small',
+  'big',
+  'ins',
+  'del',
+  's',
+  'b',
+  'i',
+  'em',
+  'strong',
+  'abbr',
+  'cite',
+  'q',
+  'samp',
+  'var',
+  'tt',
+] as const;
 
 const RAW_BLOCK_CLASS: Record<RawBlockKind, string> = {
   html: 'md-htmlblock md-rawblock',
   frontmatter: 'md-meta-block md-rawblock',
   math: 'md-math-block md-rawblock',
+  footnote: 'md-def-footnote md-rawblock',
   markdown: 'md-rawblock md-raw-markdown',
 };
 
@@ -265,8 +289,22 @@ const nodes = {
     group: 'inline',
     inline: true,
     selectable: false,
+    /** `raw` keeps the HTML spelling (`<br>`, `<br/>`) of breaks written as HTML. */
+    attrs: { raw: { default: null } },
     parseDOM: [{ tag: 'br' }],
     toDOM: (): DOMOutputSpec => ['br'],
+  },
+
+  /** `[toc]`: table of contents of the document, generated from its headings. */
+  toc: {
+    group: 'block',
+    atom: true,
+    selectable: true,
+    attrs: { text: { default: '[toc]' } },
+    parseDOM: [
+      { tag: 'div.md-toc', getAttrs: (dom: HTMLElement) => ({ text: dom.dataset.text ?? '[toc]' }) },
+    ],
+    toDOM: (node): DOMOutputSpec => ['div', { class: 'md-toc', 'data-text': node.attrs.text }],
   },
 } satisfies Record<string, NodeSpec>;
 
@@ -305,6 +343,23 @@ const marks = {
   underline: {
     parseDOM: [{ tag: 'u' }],
     toDOM: (): DOMOutputSpec => ['u', 0],
+  },
+
+  /** `==text==` (Typora highlight). */
+  highlight: {
+    parseDOM: [{ tag: 'mark.md-highlight' }],
+    toDOM: (): DOMOutputSpec => ['mark', { class: 'md-highlight' }, 0],
+  },
+
+  /** An inline HTML tag without attributes, kept as written (`<kbd>Ctrl</kbd>`). */
+  htmltag: {
+    attrs: { tag: { validate: 'string' } },
+    excludes: '',
+    parseDOM: (HTML_TAG_MARKS as readonly string[]).map((tag) => ({
+      tag: `${tag}.md-htmltag`,
+      attrs: { tag },
+    })),
+    toDOM: (mark): DOMOutputSpec => [mark.attrs.tag as string, { class: 'md-htmltag md-html-inline' }, 0],
   },
 
   code: {

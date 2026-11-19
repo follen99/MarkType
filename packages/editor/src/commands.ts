@@ -8,6 +8,7 @@ export const EDITOR_COMMANDS = [
   'underline',
   'inlineCode',
   'strike',
+  'highlight',
   'clearFormat',
   'link',
   'image',

@@ -54,3 +54,60 @@
 #write a {
   color: var(--primary-color);
 }
+
+/* Code tokens (CodeMirror 5 class names, as in Typora themes) */
+.cm-s-inner .cm-keyword {
+  color: #ff7b72;
+}
+.cm-s-inner .cm-atom,
+.cm-s-inner .cm-number {
+  color: #79c0ff;
+}
+.cm-s-inner .cm-string {
+  color: #a5d6ff;
+}
+.cm-s-inner .cm-string-2 {
+  color: #7ee787;
+}
+.cm-s-inner .cm-comment {
+  color: #8b949e;
+  font-style: italic;
+}
+.cm-s-inner .cm-def {
+  color: #d2a8ff;
+}
+.cm-s-inner .cm-variable-2 {
+  color: #ffa657;
+}
+.cm-s-inner .cm-variable-3 {
+  color: #ffa657;
+}
+.cm-s-inner .cm-property {
+  color: #79c0ff;
+}
+.cm-s-inner .cm-operator {
+  color: #ff7b72;
+}
+.cm-s-inner .cm-meta {
+  color: #d2a8ff;
+}
+.cm-s-inner .cm-tag {
+  color: #7ee787;
+}
+.cm-s-inner .cm-attribute {
+  color: #79c0ff;
+}
+.cm-s-inner .cm-builtin {
+  color: #d2a8ff;
+}
+.cm-s-inner .cm-header {
+  color: #79c0ff;
+  font-weight: 600;
+}
+.cm-s-inner .cm-link {
+  color: #a5d6ff;
+  text-decoration: underline;
+}
+.cm-s-inner .cm-error {
+  color: #ffa198;
+}

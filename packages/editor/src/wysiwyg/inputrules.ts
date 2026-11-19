@@ -56,6 +56,19 @@ function imageRule(schema: Schema): InputRule {
   });
 }
 
+/** `$x^2$` becomes inline math (kept as source text, rendered by the inline render plugin). */
+function inlineMathRule(schema: Schema): InputRule {
+  return new InputRule(/(^|[^$\\])\$([^$\s](?:[^$]*[^$\s])?)\$$/, (state, match, start, end) => {
+    const prefix = match[1] ?? '';
+    const from = start + prefix.length;
+    if (rangeHasLiteral(state, from, end)) return null;
+    const raw = schema.marks.raw!.create({ kind: 'math' });
+    const tr = state.tr.replaceWith(from, end, schema.text(`$${match[2]}$`, [raw]));
+    tr.removeStoredMark(schema.marks.raw!);
+    return tr;
+  });
+}
+
 /** `[ ] ` or `[x] ` at the start of a list item turns it into a task. */
 function taskRule(schema: Schema): InputRule {
   return new InputRule(/^\[([ xX])\]\s$/, (state, match, start, end) => {
@@ -90,6 +103,8 @@ export function buildInputRules(schema: Schema) {
       markRule(/(^|[^_\w\\])_([^_\s](?:[^_]*[^_\s])?)_$/, marks.em!, 1),
       markRule(/(^|[^~\\])~~([^~\s](?:[^~]*[^~\s])?)~~$/, marks.strike!, 2),
       markRule(/(^|[^`\\])`([^`]+)`$/, marks.code!, 1),
+      markRule(/(^|[^=\\])==([^=\s](?:[^=]*[^=\s])?)==$/, marks.highlight!, 2),
+      inlineMathRule(schema),
       imageRule(schema),
       linkRule(schema),
     ],

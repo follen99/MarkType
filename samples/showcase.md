@@ -1,8 +1,12 @@
 # MarkType showcase
 
+[toc]
+
 A file to try the editor. Click on **bold text**, *italic text*, `inline code`, ~~strikethrough~~,
-<u>underline</u> or a [link](https://github.com/follen99/MarkType "MarkType on GitHub") and the markdown
-syntax appears around it. Ctrl+click opens the link.
+<u>underline</u>, ==highlighted text== or a [link](https://github.com/follen99/MarkType "MarkType on GitHub")
+and the markdown syntax appears around it. Ctrl+click opens the link.
+
+Keys like <kbd>Ctrl</kbd>+<kbd>B</kbd>, H<sub>2</sub>O, E = mc<sup>2</sup> and emoji :tada: :rocket:.
 
 ## Headings
 
@@ -28,22 +32,48 @@ syntax appears around it. Ctrl+click opens the link.
 - [x] A completed task
 - [ ] A task to do: click the checkbox
 
-## Quote and alert
+## Quotes and alerts
 
 > Simplicity is prerequisite for reliability.
 >
 > > A nested quote.
 
 > [!TIP]
-> GitHub alerts are kept intact when you save.
+> GitHub alerts are rendered and kept intact when you save.
+
+> [!WARNING]
+> Type `> [!NOTE]` and press Enter to create one.
 
 ## Code
 
 ```rust
 fn main() {
-    println!("Hello from MarkType");
+    let greeting = "Hello from MarkType";
+    println!("{greeting}"); // syntax highlighting
 }
 ```
+
+```python
+def fib(n: int) -> int:
+    return n if n < 2 else fib(n - 1) + fib(n - 2)
+```
+
+## Diagrams
+
+```mermaid
+graph LR
+  A[Write] --> B{Preview?}
+  B -->|Yes| C[Rendered]
+  B -->|No| D[Source]
+```
+
+## Math
+
+Inline math $a^2 + b^2 = c^2$ and a block:
+
+$$
+\int_0^\infty e^{-x^2}\,dx = \frac{\sqrt{\pi}}{2}
+$$
 
 ## Table
 
@@ -53,21 +83,17 @@ fn main() {
 | Heading |  Ctrl+1  |   done |
 | Source  |  Ctrl+/  |   done |
 
+Click in a cell to see the table toolbar; Ctrl+Enter adds a row.
+
 ---
 
-## Shown as source for now
-
-These are rendered in a later milestone (M3), but they survive saving unchanged:
-
-$$
-E = mc^2
-$$
-
-Inline math $a^2 + b^2 = c^2$, a footnote[^1] and an HTML block:
+## HTML and footnotes
 
 <details>
   <summary>Click me</summary>
   Hidden content.
 </details>
+
+A sentence with a footnote[^1].
 
 [^1]: The footnote text.

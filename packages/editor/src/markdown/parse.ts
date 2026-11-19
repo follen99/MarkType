@@ -2,6 +2,7 @@ import type { Mark, Node as PMNode } from 'prosemirror-model';
 import type * as md from 'mdast';
 import {
   ALERT_TYPES,
+  HTML_TAG_MARKS,
   schema,
   type AlertType,
   type CellAlign,
@@ -10,13 +11,30 @@ import {
 } from '../schema.ts';
 import { parseMdast } from './processor.ts';
 
-/** Inline HTML tags that map to marks instead of being shown as raw source. */
-const HTML_MARK_TAGS: Record<string, string> = {
-  u: 'underline',
-  ins: 'underline',
-  del: 'strike',
-  s: 'strike',
-};
+const HTML_TAG = /^<(\/?)([a-z]+)\s*>$/i;
+const HTML_BREAK = /^<br\s*\/?>$/i;
+const HIGHLIGHT = /==(?=\S)([^=]*?\S)==/g;
+const TAG_MARKS = new Set<string>(HTML_TAG_MARKS);
+
+/** The mark an inline HTML tag becomes, or null if it stays raw source. */
+function htmlTagMark(tag: string): Mark | null {
+  if (tag === 'u') return schema.marks.underline.create();
+  return TAG_MARKS.has(tag) ? schema.marks.htmltag.create({ tag }) : null;
+}
+
+/** Splits `==highlight==` out of plain text. */
+function textWithHighlights(value: string, marks: readonly Mark[]): PMNode[] {
+  if (!value.includes('==')) return textNode(value, marks);
+  const out: PMNode[] = [];
+  let index = 0;
+  for (const m of value.matchAll(HIGHLIGHT)) {
+    out.push(...textNode(value.slice(index, m.index), marks));
+    out.push(...textNode(m[1]!, schema.marks.highlight.create().addToSet(marks)));
+    index = m.index + m[0].length;
+  }
+  out.push(...textNode(value.slice(index), marks));
+  return out;
+}
 
 interface Ctx {
   source: string;
@@ -48,34 +66,52 @@ function convertInline(children: readonly md.PhrasingContent[], marks: readonly 
   const open: { tag: string; mark: Mark }[] = [];
   const current = () => open.reduce<readonly Mark[]>((set, o) => o.mark.addToSet(set), marks);
 
-  for (const child of children) {
+  const tagOf = (node: md.PhrasingContent) => {
+    if (node.type !== 'html') return null;
+    const m = HTML_TAG.exec(node.value.trim());
+    return m ? { closing: !!m[1], tag: m[2]!.toLowerCase() } : null;
+  };
+
+  children.forEach((child, index) => {
     if (child.type === 'html') {
-      const m = /^<(\/?)([a-z]+)\s*>$/i.exec(child.value.trim());
-      const tag = m?.[2]?.toLowerCase();
-      const markName = tag ? HTML_MARK_TAGS[tag] : undefined;
-      if (m && tag && markName) {
-        if (!m[1]) {
-          open.push({ tag, mark: schema.marks[markName]!.create() });
-          continue;
-        }
-        const idx = open.findLastIndex((o) => o.tag === tag);
-        if (idx >= 0) {
-          open.splice(idx, 1);
-          continue;
+      const value = child.value.trim();
+      if (HTML_BREAK.test(value)) {
+        out.push(schema.nodes.hard_break.create({ raw: child.value }, null, current()));
+        return;
+      }
+      const parsed = tagOf(child);
+      const mark = parsed && htmlTagMark(parsed.tag);
+      if (parsed && mark) {
+        if (!parsed.closing) {
+          // Only a tag closed later in the same paragraph becomes formatting.
+          const closed = children.slice(index + 1).some((c) => {
+            const t = tagOf(c);
+            return t?.closing && t.tag === parsed.tag;
+          });
+          if (closed) {
+            open.push({ tag: parsed.tag, mark });
+            return;
+          }
+        } else {
+          const idx = open.findLastIndex((o) => o.tag === parsed.tag);
+          if (idx >= 0) {
+            open.splice(idx, 1);
+            return;
+          }
         }
       }
       out.push(...rawInline('html', child.value, current()));
-      continue;
+      return;
     }
     out.push(...convertPhrasing(child, current(), ctx));
-  }
+  });
   return out;
 }
 
 function convertPhrasing(node: md.PhrasingContent, marks: readonly Mark[], ctx: Ctx): PMNode[] {
   switch (node.type) {
     case 'text':
-      return textNode(node.value, marks);
+      return textWithHighlights(node.value, marks);
     case 'strong':
       return convertInline(node.children, schema.marks.strong.create().addToSet(marks), ctx);
     case 'emphasis':
@@ -104,8 +140,10 @@ function convertPhrasing(node: md.PhrasingContent, marks: readonly Mark[], ctx: 
       return rawInline('math', sourceOf(node, ctx) || `$${node.value}$`, marks);
     case 'html':
       return rawInline('html', node.value, marks);
+    case 'footnoteReference':
+      return rawInline('footnote', sourceOf(node, ctx), marks);
     default:
-      // linkReference, imageReference, footnoteReference, … : kept verbatim.
+      // linkReference, imageReference, … : kept verbatim.
       return rawInline('markdown', sourceOf(node, ctx), marks);
   }
 }
@@ -169,8 +207,13 @@ function convertTable(node: md.Table, ctx: Ctx): PMNode {
 
 function convertBlock(node: md.RootContent, ctx: Ctx): PMNode[] {
   switch (node.type) {
-    case 'paragraph':
+    case 'paragraph': {
+      const only = node.children.length === 1 ? node.children[0] : null;
+      if (only?.type === 'text' && /^\[toc\]$/i.test(only.value.trim())) {
+        return [schema.nodes.toc.create({ text: only.value.trim() })];
+      }
       return [schema.nodes.paragraph.create(null, convertInline(node.children, [], ctx))];
+    }
     case 'heading':
       return [schema.nodes.heading.create({ level: node.depth }, convertInline(node.children, [], ctx))];
     case 'thematicBreak':
@@ -196,8 +239,10 @@ function convertBlock(node: md.RootContent, ctx: Ctx): PMNode[] {
       return [rawBlock('frontmatter', node.value)];
     case 'math':
       return [rawBlock('math', sourceOf(node, ctx))];
+    case 'footnoteDefinition':
+      return [rawBlock('footnote', sourceOf(node, ctx))];
     default:
-      // definition, footnoteDefinition, … : kept verbatim.
+      // definition, … : kept verbatim.
       return [rawBlock('markdown', sourceOf(node, ctx))];
   }
 }

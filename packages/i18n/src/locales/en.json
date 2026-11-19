@@ -154,5 +154,6 @@
   "recovery.title": "Recover unsaved changes?",
   "recovery.message": "MarkType closed unexpectedly. Unsaved changes were found for {count} document(s): {names}.",
   "recovery.recover": "Recover",
-  "recovery.discard": "Discard"
+  "recovery.discard": "Discard",
+  "cmd.highlight": "Highlight"
 }

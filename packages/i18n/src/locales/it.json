@@ -154,5 +154,6 @@
   "recovery.title": "Recuperare le modifiche non salvate?",
   "recovery.message": "MarkType si è chiuso in modo anomalo. Ci sono modifiche non salvate per {count} documento/i: {names}.",
   "recovery.recover": "Recupera",
-  "recovery.discard": "Elimina"
+  "recovery.discard": "Elimina",
+  "cmd.highlight": "Evidenzia"
 }

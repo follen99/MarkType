@@ -55,6 +55,8 @@ fisica del tasto sulla tastiera US. Sulla tastiera italiana quindi `Ctrl+-` e `C
 | Sottolineato (`<u>`) | `Ctrl+U` |
 | Codice inline | ``Ctrl+Shift+` `` |
 | Barrato | `Alt+Shift+5` |
+| Evidenziato (`==testo==`) | `Ctrl+Shift+H` |
+| Nuova riga nella tabella | `Ctrl+Invio` |
 | Link | `Ctrl+K` |
 | Immagine | `Ctrl+Shift+I` |
 | Rimuovi formattazione | `Ctrl+\` |

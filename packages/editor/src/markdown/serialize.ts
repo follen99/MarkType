@@ -25,20 +25,30 @@ function openMark(mark: Mark, parent: Parent): Parent {
     case 'strike':
       node = { type: 'delete', children: [] };
       break;
-    case 'underline': {
-      // No markdown syntax: written as <u>…</u>. Children go between the two html nodes.
-      const group: Parent = { children: [] };
-      parent.children.push({ type: 'html', value: '<u>' });
-      (group as Parent & { close: () => void }).close = () => {
-        parent.children.push(...group.children, { type: 'html', value: '</u>' });
-      };
-      return group;
-    }
+    case 'underline':
+      return wrapVerbatim(parent, '<u>', '</u>');
+    case 'highlight':
+      return wrapVerbatim(parent, '==', '==');
+    case 'htmltag':
+      return wrapVerbatim(parent, `<${mark.attrs.tag}>`, `</${mark.attrs.tag}>`);
     default:
       throw new Error(`unexpected mark ${mark.type.name}`);
   }
   parent.children.push(node);
   return node;
+}
+
+/**
+ * Marks without a markdown node (`<u>…</u>`, `==…==`): the delimiters are written as raw html around
+ * the children, so they are never escaped.
+ */
+function wrapVerbatim(parent: Parent, open: string, close: string): Parent {
+  const group: Parent = { children: [] };
+  parent.children.push({ type: 'html', value: open });
+  (group as Parent & { close: () => void }).close = () => {
+    parent.children.push(...group.children, { type: 'html', value: close });
+  };
+  return group;
 }
 
 function closeMark(parent: Parent): void {
@@ -98,7 +108,8 @@ function inlineContent(block: PMNode): md.PhrasingContent[] {
           title: (child.attrs.title as string) ?? null,
         });
       } else if (child.type.name === 'hard_break') {
-        top().children.push({ type: 'break' });
+        const raw = child.attrs.raw as string | null;
+        top().children.push(raw ? { type: 'html', value: raw } : { type: 'break' });
       }
     }
   });
@@ -166,6 +177,8 @@ function convertBlock(node: PMNode): md.RootContent | null {
         : { type: 'html', value: node.textContent };
     case 'horizontal_rule':
       return { type: 'thematicBreak' };
+    case 'toc':
+      return { type: 'html', value: node.attrs.text as string };
     case 'bullet_list':
     case 'ordered_list': {
       const tight = node.attrs.tight as boolean;

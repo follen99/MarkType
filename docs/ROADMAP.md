@@ -57,16 +57,19 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
   (termina MarkType dal Task Manager con modifiche non salvate e riaprilo).
 
 ## M3: Rendering avanzato → **alpha 3**
-- [ ] Evidenziazione della sintassi nei blocchi di codice (linguaggi lazy, classi `cm-*`)
-- [ ] Mermaid (lazy, modifica al clic)
-- [ ] KaTeX inline e a blocchi
-- [ ] Tabelle con modifica visuale (righe, colonne, allineamento)
-- [ ] Task list, note a piè di pagina, barrato, evidenziato, emoji, apice/pedice
-- [ ] Front matter YAML
-- [ ] `[toc]` nel documento
-- [ ] Alert GitHub (`> [!NOTE]`, …)
-- [ ] HTML inline/blocchi sanificato
-- Da testare: documenti tecnici reali con codice, diagrammi e formule.
+- [x] Evidenziazione della sintassi nei blocchi di codice (oltre 100 linguaggi caricati on demand, classi `cm-*`), etichetta del linguaggio modificabile
+- [x] Mermaid (lazy, sorgente visibile quando il cursore è nel blocco, tema chiaro/scuro automatico)
+- [x] KaTeX inline (`$…$`) e a blocchi (`$$`), sorgente al cursore
+- [x] Tabelle con modifica visuale: barra strumenti (allineamento, righe, colonne, elimina), `| a | b |` + Invio, `Ctrl+Invio` aggiunge una riga
+- [x] Task list, barrato, `==evidenziato==` (`Ctrl+Shift+H`), emoji `:smile:`, apice/pedice via `<sup>`/`<sub>`
+- [x] Note a piè di pagina: riferimenti in apice e definizioni stilizzate (modificate come sorgente)
+- [x] Front matter YAML (blocco dedicato, preservato)
+- [x] `[toc]` nel documento, aggiornato in tempo reale e cliccabile
+- [x] Alert GitHub (`> [!NOTE]` + Invio crea l'alert; colori per tipo)
+- [x] HTML: blocchi renderizzati e sanificati (DOMPurify); tag inline senza attributi (`<kbd>`, `<sup>`, `<mark>`…) come formattazione; `<br>` come a capo
+- Rimandati: apice/pedice con la sintassi `^x^` / `~x~` (entra in conflitto con il barrato a una tilde di GFM);
+  note a piè di pagina con popup e modifica visuale.
+- Da testare: documenti tecnici reali con codice, diagrammi e formule; `samples/showcase.md`.
 
 ## M4: Temi → **alpha 4**
 - [ ] Loader dei temi (base → tema → base.user.css → tema.user.css)

@@ -290,13 +290,16 @@ export class DocumentController {
     this.host?.focus();
   }
 
-  /** Closes the editor. With `discard`, also forgets the crash-recovery copy. */
-  destroy(discard: boolean): void {
+  /**
+   * Closes the editor. With `discard`, also forgets the crash-recovery copy; the returned promise
+   * settles once it is gone (await it before the window closes).
+   */
+  destroy(discard: boolean): Promise<void> {
     clearTimeout(this.autosaveTimer);
     clearTimeout(this.draftTimer);
-    if (discard) void this.env.platform.drafts.remove(this.id).catch(() => {});
     this.host?.destroy();
     this.host = null;
     this.container.remove();
+    return discard ? this.env.platform.drafts.remove(this.id).catch(() => {}) : Promise.resolve();
   }
 }

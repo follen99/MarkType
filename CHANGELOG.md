@@ -24,3 +24,7 @@ versioning: [SemVer](https://semver.org).
   recovery of unsaved changes after a crash, Ctrl+click on links to local markdown files.
 - The mode label in the status bar cycles visual → source → split.
 - Shortcuts follow the keyboard layout (e.g. `Ctrl+-` / `Ctrl++` on the Italian layout).
+- Rendering (M3): syntax highlighting for 100+ languages (loaded on demand) with an editable
+  language label, Mermaid diagrams, KaTeX math (inline and blocks), sanitized HTML blocks,
+  `[toc]`, `==highlight==`, emoji shortcodes, inline HTML tags as formatting, styled footnotes,
+  colored GitHub alerts, table toolbar and `| a | b |` + Enter to create tables.

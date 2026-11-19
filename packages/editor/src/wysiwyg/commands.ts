@@ -298,6 +298,8 @@ export function runWysiwygCommand(view: EditorView, id: EditorCommandId, env: Wy
       return run(toggleMark(marks.code!));
     case 'strike':
       return run(toggleMark(marks.strike!));
+    case 'highlight':
+      return run(toggleMark(marks.highlight!));
     case 'clearFormat':
       return run(clearFormat);
     case 'link':

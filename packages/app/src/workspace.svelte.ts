@@ -114,7 +114,7 @@ export class Workspace {
 
   private remove(doc: DocumentController, discard: boolean): void {
     const index = this.docs.indexOf(doc);
-    doc.destroy(discard);
+    void doc.destroy(discard);
     this.docs.splice(index, 1);
     if (this.activeId === doc.id) {
       const next = this.docs[Math.min(index, this.docs.length - 1)];
@@ -157,7 +157,7 @@ export class Workspace {
       this.activate(doc);
       if (!(await doc.confirmDiscard())) return false;
     }
-    for (const doc of this.docs) doc.destroy(true);
+    await Promise.all(this.docs.map((doc) => doc.destroy(true)));
     return true;
   }
 

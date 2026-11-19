@@ -174,6 +174,8 @@ export function runSourceCommand(view: EditorView, id: EditorCommandId, options:
       return wrapSelection(view, '`');
     case 'strike':
       return wrapSelection(view, '~~');
+    case 'highlight':
+      return wrapSelection(view, '==');
     case 'link':
       void insertLink(view, options, false);
       return true;

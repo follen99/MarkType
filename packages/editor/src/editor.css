@@ -354,3 +354,275 @@
 #typora-source .cm-searchMatch-selected {
   background: var(--search-select-bg-color, rgba(255, 140, 0, 0.6));
 }
+
+/* ---------- Code fences: language label ---------- */
+
+#write pre.md-fences {
+  position: relative;
+}
+
+#write .md-fences-lang-wrap {
+  position: absolute;
+  right: 8px;
+  bottom: 4px;
+  opacity: 0;
+  transition: opacity var(--mt-transition, 140ms);
+}
+
+#write pre.md-fences:hover .md-fences-lang-wrap,
+#write pre.md-fences.md-focus .md-fences-lang-wrap,
+#write .md-fences-lang-wrap:focus-within {
+  opacity: 1;
+}
+
+#write .md-fences-lang {
+  width: 9em;
+  padding: 1px 6px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--meta-content-color);
+  font: inherit;
+  font-size: 0.8em;
+  text-align: right;
+}
+
+#write .md-fences-lang:focus {
+  border-color: var(--primary-color);
+  background: var(--bg-color);
+  outline: none;
+  text-align: left;
+}
+
+#write.mt-preview .md-fences-lang-wrap {
+  display: none;
+}
+
+/* ---------- Rendered blocks: diagrams, math, HTML ---------- */
+
+#write .md-has-preview:not(.md-focus) > code,
+#write .md-has-preview:not(.md-focus) > .md-fences-lang-wrap {
+  display: none;
+}
+
+#write.mt-preview .md-has-preview > code {
+  display: none;
+}
+
+/* A rendered block looks like content, not like code. */
+#write .md-has-preview:not(.md-focus),
+#write.mt-preview .md-has-preview {
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+}
+
+#write .md-preview {
+  color: var(--text-color);
+  font-size: var(--base-font-size);
+  white-space: normal;
+  cursor: default;
+}
+
+#write .md-has-preview.md-focus .md-preview {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed var(--item-hover-bg-color);
+}
+
+#write .md-preview-mermaid,
+#write .md-preview-math {
+  overflow-x: auto;
+  text-align: center;
+}
+
+#write .md-preview-mermaid svg {
+  max-width: 100%;
+  height: auto;
+}
+
+#write .md-preview-html {
+  text-align: left;
+  font-size: var(--base-font-size);
+  line-height: 1.6;
+}
+
+#write .md-preview-empty::before {
+  content: '…';
+  color: var(--meta-content-color);
+}
+
+#write .md-preview-error {
+  font-family: var(--monospace);
+  font-size: 0.85em;
+  color: #d9534f;
+  text-align: left;
+}
+
+/* ---------- Inline rendering ---------- */
+
+#write .md-hidden-source {
+  display: none;
+}
+
+#write .md-inline-math,
+#write .md-emoji {
+  cursor: text;
+}
+
+#write .md-inline-math .katex {
+  font-size: 1.05em;
+}
+
+#write mark.md-highlight {
+  padding: 0 0.1em;
+  border-radius: 2px;
+  background: var(--mt-highlight-bg, rgba(255, 220, 0, 0.45));
+  color: inherit;
+}
+
+#write kbd.md-htmltag {
+  display: inline-block;
+  padding: 0 0.4em;
+  border: 1px solid var(--active-file-bg-color);
+  border-bottom-width: 2px;
+  border-radius: 4px;
+  background: var(--side-bar-bg-color);
+  font-family: var(--monospace);
+  font-size: 0.85em;
+  line-height: 1.5;
+}
+
+#write .md-raw-footnote {
+  vertical-align: super;
+  font-family: inherit;
+  font-size: 0.72em;
+  color: var(--primary-color);
+}
+
+#write pre.md-def-footnote {
+  padding: 2px 0 2px 12px;
+  border-left: 2px solid var(--item-hover-bg-color);
+  background: transparent;
+  font-family: inherit;
+  font-size: 0.88em;
+  white-space: pre-wrap;
+}
+
+/* ---------- [toc] ---------- */
+
+#write .md-toc {
+  margin: 1em 0;
+  padding: 8px 14px;
+  border-left: 3px solid var(--primary-color);
+  border-radius: 0 var(--mt-radius-small, 5px) var(--mt-radius-small, 5px) 0;
+  background: var(--side-bar-bg-color);
+  user-select: none;
+}
+
+#write .md-toc-item {
+  margin: 2px 0;
+  padding-left: calc(var(--mt-toc-depth, 0) * 1.2em);
+  cursor: pointer;
+}
+
+#write .md-toc-inner {
+  color: var(--primary-color);
+  text-decoration: none;
+  cursor: pointer;
+}
+
+#write .md-toc-inner:hover {
+  text-decoration: underline;
+}
+
+#write .md-toc-empty {
+  color: var(--meta-content-color);
+}
+
+/* ---------- Tables ---------- */
+
+#write figure.md-table-fig {
+  position: relative;
+  margin: 1em 0;
+  padding-top: 0;
+  overflow-x: auto;
+}
+
+#write .md-table-edit {
+  display: none;
+  gap: 2px;
+  align-items: center;
+  width: max-content;
+  margin-bottom: 4px;
+  padding: 3px;
+  border: var(--window-border);
+  border-radius: var(--mt-radius-small, 5px);
+  background: var(--bg-color);
+  user-select: none;
+}
+
+#write .md-table-fig:has(.md-focus) > .md-table-edit,
+#write .md-table-fig:has(.selectedCell) > .md-table-edit {
+  display: flex;
+}
+
+#write .md-table-tool {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 22px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--control-text-color);
+  cursor: pointer;
+}
+
+#write .md-table-tool:hover {
+  background: var(--item-hover-bg-color);
+  color: var(--control-text-hover-color);
+}
+
+#write .md-table-tool.active {
+  background: var(--select-text-bg-color);
+  color: var(--primary-color);
+}
+
+#write .md-table-tool-sep {
+  width: 1px;
+  height: 14px;
+  margin: 0 3px;
+  background: var(--item-hover-bg-color);
+}
+
+#write .md-table-fig > table {
+  margin: 0;
+}
+
+/* ---------- GitHub alerts ---------- */
+
+#write .md-alert-note {
+  --mt-alert-color: #0969da;
+}
+#write .md-alert-tip {
+  --mt-alert-color: #1a7f37;
+}
+#write .md-alert-important {
+  --mt-alert-color: #8250df;
+}
+#write .md-alert-warning {
+  --mt-alert-color: #9a6700;
+}
+#write .md-alert-caution {
+  --mt-alert-color: #cf222e;
+}
+
+#write blockquote.md-alert {
+  border-left-color: var(--mt-alert-color, var(--primary-color));
+}
+
+#write blockquote.md-alert::before {
+  color: var(--mt-alert-color, var(--primary-color));
+}

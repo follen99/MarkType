@@ -11,6 +11,11 @@ import type { MarkdownStyle } from '../markdown/processor.ts';
 import { buildInputRules } from './inputrules.ts';
 import { buildKeymaps } from './keymap.ts';
 import { seamlessPlugin } from './seamless.ts';
+import { codeHighlightPlugin } from '../render/highlight.ts';
+import { inlineRenderPlugin } from '../render/inline.ts';
+import { CodeBlockView, RawBlockView } from '../render/blocks.ts';
+import { tableSupport } from '../render/table.ts';
+import { tocSupport } from '../render/toc.ts';
 
 export interface WysiwygViewOptions {
   style: MarkdownStyle;
@@ -107,8 +112,9 @@ function clickPlugin(options: WysiwygViewOptions): Plugin {
   });
 }
 
-export function createWysiwygState(doc: PMNode, options: WysiwygViewOptions): EditorState {
-  if (!options.editable) return EditorState.create({ doc, plugins: [clickPlugin(options)] });
+function createWysiwygState(doc: PMNode, options: WysiwygViewOptions, extra: Plugin[]): EditorState {
+  const rendering = [codeHighlightPlugin(), inlineRenderPlugin(), ...extra, clickPlugin(options)];
+  if (!options.editable) return EditorState.create({ doc, plugins: rendering });
   return EditorState.create({
     doc,
     plugins: [
@@ -120,14 +126,17 @@ export function createWysiwygState(doc: PMNode, options: WysiwygViewOptions): Ed
       tableEditing(),
       search(),
       seamlessPlugin({ style: options.style, onEditLink: options.onEditLink }),
-      clickPlugin(options),
+      ...rendering,
     ],
   });
 }
 
 export function createWysiwygView(parent: HTMLElement, doc: PMNode, options: WysiwygViewOptions): EditorView {
+  const toc = tocSupport();
+  const tables = tableSupport();
+  const blockEnv = { resolveUrl: options.resolveUrl };
   const view: EditorView = new EditorView(parent, {
-    state: createWysiwygState(doc, options),
+    state: createWysiwygState(doc, options, [toc.plugin, tables.plugin]),
     editable: () => options.editable,
     // Only one #write exists at a time: the editor, or the preview in split view.
     attributes: {
@@ -137,6 +146,10 @@ export function createWysiwygView(parent: HTMLElement, doc: PMNode, options: Wys
     },
     nodeViews: {
       image: (node) => new ImageView(node, options.resolveUrl),
+      code_block: (node, v, getPos) => new CodeBlockView(node, v, getPos, blockEnv),
+      raw_block: (node, v, getPos) => new RawBlockView(node, v, getPos, blockEnv),
+      table: (node, v) => tables.nodeView(node, v),
+      toc: (_node, v) => toc.nodeView(v),
     },
     dispatchTransaction(tr) {
       const state = view.state.apply(tr);
