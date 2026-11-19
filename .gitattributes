@@ -1,2 +1,19 @@
-# Auto detect text files and perform LF normalization
-* text=auto
+# Normalize text files to LF in the repository
+* text=auto eol=lf
+
+# Windows-only scripts keep CRLF
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+*.ps1  text eol=crlf
+*.nsh  text eol=crlf
+
+# Round-trip fixtures must stay byte-exact (some test CRLF/BOM on purpose)
+packages/editor/test/fixtures/** -text
+
+# Binary assets
+*.png  binary
+*.jpg  binary
+*.ico  binary
+*.icns binary
+*.woff binary
+*.woff2 binary
