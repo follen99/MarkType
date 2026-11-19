@@ -55,7 +55,8 @@ function keyNameFromKey(key: string): string | null {
   return Object.values(CODE_KEYS).includes(key) ? key : null;
 }
 
-function keyName(event: KeyboardEvent): string | null {
+/** Physical key (US position) for punctuation and digits, layout letter for letters. */
+function physicalKeyName(event: KeyboardEvent): string | null {
   const { code, key } = event;
   if (!code) return keyNameFromKey(key);
   if (code.startsWith('Key')) {
@@ -68,25 +69,66 @@ function keyName(event: KeyboardEvent): string | null {
   return CODE_KEYS[code] ?? null;
 }
 
-export function shortcutFromEvent(event: KeyboardEvent, isMac: boolean): string | null {
-  if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(event.key)) return null;
-  // AltGr (reported as Ctrl+Alt on Windows) types characters such as [ ] @ # on many layouts.
-  if (event.getModifierState?.('AltGraph')) return null;
-  const key = keyName(event);
-  if (!key) return null;
+/** The character the key produces (`+` on the Italian `+` key), for printable non-letter keys. */
+function characterKeyName(event: KeyboardEvent): string | null {
+  const { key } = event;
+  if (key.length !== 1 || key === ' ' || /^[a-z]$/i.test(key)) return null;
+  return key;
+}
+
+function compose(event: KeyboardEvent, isMac: boolean, key: string, withShift: boolean): string {
   const parts: string[] = [];
   if (isMac ? event.metaKey : event.ctrlKey) parts.push('Mod');
   if (isMac && event.ctrlKey) parts.push('Ctrl');
   if (event.altKey) parts.push('Alt');
-  if (event.shiftKey) parts.push('Shift');
+  if (withShift && event.shiftKey) parts.push('Shift');
   parts.push(key);
   return parts.join('+');
 }
 
-/** Canonical form of a user-written shortcut (`shift+mod+k` → `Mod+Shift+K`). */
+/**
+ * Shortcut strings an event may mean, most specific first:
+ * 1. the character typed (so Ctrl+- and Ctrl++ work on the Italian layout),
+ * 2. the physical US key (so Ctrl+Shift+[ works where [ needs AltGr),
+ * 3. the character without Shift, when Shift was needed to type it (Ctrl+Shift+7 = Ctrl+/ on Italian).
+ */
+export function shortcutCandidates(event: KeyboardEvent, isMac: boolean): string[] {
+  if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(event.key)) return [];
+  // AltGr (reported as Ctrl+Alt on Windows) types characters such as [ ] @ # on many layouts.
+  if (event.getModifierState?.('AltGraph')) return [];
+  const out: string[] = [];
+  const add = (s: string) => {
+    if (!out.includes(s)) out.push(s);
+  };
+  const char = isMac && event.altKey ? null : characterKeyName(event);
+  if (char) add(compose(event, isMac, char, true));
+  const physical = physicalKeyName(event);
+  if (physical) add(compose(event, isMac, physical, true));
+  if (char && event.shiftKey && !/^\d$/.test(char)) add(compose(event, isMac, char, false));
+  return out;
+}
+
+/** The main shortcut string of an event (physical key). */
+export function shortcutFromEvent(event: KeyboardEvent, isMac: boolean): string | null {
+  if (['Control', 'Shift', 'Alt', 'Meta', 'AltGraph'].includes(event.key)) return null;
+  if (event.getModifierState?.('AltGraph')) return null;
+  const physical = physicalKeyName(event);
+  return physical ? compose(event, isMac, physical, true) : null;
+}
+
+/** Canonical form of a user-written shortcut (`shift+mod+k` → `Mod+Shift+K`, `Mod++`). */
 export function normalizeShortcut(shortcut: string): string {
-  const tokens = shortcut.split('+').map((t) => t.trim());
-  const rawKey = tokens.pop() ?? '';
+  let rest = shortcut.trim();
+  let rawKey: string;
+  if (rest === '+' || rest.endsWith('++')) {
+    rawKey = '+';
+    rest = rest.slice(0, -2);
+  } else {
+    const index = rest.lastIndexOf('+');
+    rawKey = rest.slice(index + 1).trim();
+    rest = index >= 0 ? rest.slice(0, index) : '';
+  }
+  const tokens = rest.split('+').map((t) => t.trim());
   const modifiers = new Set(
     tokens.filter(Boolean).map((t) => {
       const lower = t.toLowerCase();
@@ -102,8 +144,10 @@ export function normalizeShortcut(shortcut: string): string {
 
 /** Human-readable label for menus: `Ctrl+Shift+K` / `⇧⌘K`. */
 export function formatShortcut(shortcut: string, isMac: boolean): string {
-  const parts = normalizeShortcut(shortcut).split('+');
-  const key = parts.pop() ?? '';
+  const normalized = normalizeShortcut(shortcut);
+  const plusKey = normalized.endsWith('++') || normalized === '+';
+  const parts = (plusKey ? normalized.slice(0, -1) : normalized).split('+').filter(Boolean);
+  const key = plusKey ? '+' : (parts.pop() ?? '');
   if (isMac) {
     const symbols: Record<string, string> = { Mod: '⌘', Ctrl: '⌃', Alt: '⌥', Shift: '⇧' };
     const order = ['Ctrl', 'Alt', 'Shift', 'Mod'];

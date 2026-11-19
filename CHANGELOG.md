@@ -18,3 +18,9 @@ versioning: [SemVer](https://semver.org).
 - Menus in the title bar, status bar with word count, in-app dialogs.
 - Open / Save / Save As with atomic writes, external-change detection, CRLF and BOM preservation;
   untouched files are never reformatted.
+- Folders and sidebar (M2): file tree with create / rename / drag-and-drop move / move to trash,
+  outline with the current heading highlighted, search in folder (respects .gitignore).
+- Tabs, Quick Open (`Ctrl+P`, fuzzy), find & replace in every mode, optional auto save,
+  recovery of unsaved changes after a crash, Ctrl+click on links to local markdown files.
+- The mode label in the status bar cycles visual → source → split.
+- Shortcuts follow the keyboard layout (e.g. `Ctrl+-` / `Ctrl++` on the Italian layout).

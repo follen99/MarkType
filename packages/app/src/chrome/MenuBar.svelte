@@ -7,11 +7,13 @@
     t,
     isMac,
     shortcutOf,
+    isChecked,
     run,
   }: {
     t: Translate;
     isMac: boolean;
     shortcutOf: (id: CommandId) => string | undefined;
+    isChecked: (id: CommandId) => boolean | undefined;
     run: (id: CommandId) => void;
   } = $props();
 
@@ -66,13 +68,21 @@
               <div class="mt-menu-separator" role="separator"></div>
             {:else}
               {@const shortcut = shortcutOf(item)}
+              {@const checked = isChecked(item)}
               <button
                 class="mt-menu-item"
-                role="menuitem"
+                class:checkable={checked !== undefined}
+                role={checked === undefined ? 'menuitem' : 'menuitemcheckbox'}
+                aria-checked={checked}
                 onclick={() => choose(item)}
                 onmousedown={(e) => e.preventDefault()}
               >
-                <span>{t(commandLabel(item))}</span>
+                <span class="mt-menu-label">
+                  {#if checked !== undefined}<span class="mt-menu-check" aria-hidden="true">
+                      {checked ? '✓' : ''}
+                    </span>{/if}
+                  {t(commandLabel(item))}
+                </span>
                 {#if shortcut}<kbd>{formatShortcut(shortcut, isMac)}</kbd>{/if}
               </button>
             {/if}

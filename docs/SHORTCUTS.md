@@ -1,13 +1,17 @@
 # Scorciatoie da tastiera (default)
 
 I default ricalcano quelli di Typora su Windows/Linux. Su macOS `Ctrl` diventa `Cmd` e `Alt` diventa `Option`.
-Si possono personalizzare in `keybindings.json` o dal pannello impostazioni.
+Si potranno personalizzare in `keybindings.json` o dal pannello impostazioni (M6).
+
+**Layout di tastiera.** Una scorciatoia viene riconosciuta prima dal carattere che il tasto produce, poi dalla posizione
+fisica del tasto sulla tastiera US. Sulla tastiera italiana quindi `Ctrl+-` e `Ctrl++` agiscono sul livello del titolo,
+`Ctrl+Shift+7` (cioè `Ctrl+/`) apre la modalità sorgente, e `Ctrl+Shift+è` vale come `Ctrl+Shift+[`.
 
 ## File
 | Azione | Scorciatoia |
 |---|---|
-| Nuovo file | `Ctrl+N` |
-| Nuova finestra | `Ctrl+Shift+N` |
+| Nuovo file (nuova scheda) | `Ctrl+N` |
+| Scheda successiva / precedente | `Ctrl+Tab` / `Ctrl+Shift+Tab` |
 | Apri file | `Ctrl+O` |
 | Apri cartella | `Ctrl+Shift+O` |
 | Quick open | `Ctrl+P` |
@@ -35,7 +39,7 @@ Si possono personalizzare in `keybindings.json` o dal pannello impostazioni.
 |---|---|
 | Titolo 1–6 | `Ctrl+1` … `Ctrl+6` |
 | Paragrafo | `Ctrl+0` |
-| Aumenta / diminuisci il livello del titolo | `Ctrl+=` / `Ctrl+-` |
+| Aumenta / diminuisci il livello del titolo (H3 → H2 → H1 / H1 → H2 → H3) | `Ctrl+=` o `Ctrl++` / `Ctrl+-` |
 | Tabella | `Ctrl+T` |
 | Blocco di codice | `Ctrl+Shift+K` |
 | Blocco matematico | `Ctrl+Shift+M` |

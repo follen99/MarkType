@@ -1,4 +1,6 @@
-import type { FileRef, OsName, Platform } from '@marktype/platform';
+import { localPrefs, type Draft, type FileRef, type OsName, type Platform } from '@marktype/platform';
+
+const prefs = localPrefs('marktype.');
 
 declare const __APP_VERSION__: string;
 
@@ -140,8 +142,35 @@ export function createWebPlatform(): Platform {
         return { status: 'ok', stamp: null };
       },
     },
+    folders: null,
+    drafts: {
+      // Drafts live in localStorage: they survive a crash or an accidental tab close.
+      async save(draft) {
+        prefs.set(`draft.${draft.id}`, draft);
+        prefs.set('drafts', [...new Set([...prefs.get<string[]>('drafts', []), draft.id])]);
+      },
+      async remove(id) {
+        try {
+          localStorage.removeItem(`marktype.draft.${id}`);
+        } catch {
+          // ignore
+        }
+        prefs.set(
+          'drafts',
+          prefs.get<string[]>('drafts', []).filter((d) => d !== id),
+        );
+      },
+      async list() {
+        return prefs
+          .get<string[]>('drafts', [])
+          .map((id) => prefs.get<Draft | null>(`draft.${id}`, null))
+          .filter((d): d is Draft => d !== null);
+      },
+    },
+    prefs,
     // Relative images cannot be read from a single opened file; they load only if they are URLs.
     resolveAssetUrl: (_doc, src) => src,
+    resolveLocalLink: () => null,
     openExternal: async (url) => {
       window.open(url, '_blank', 'noopener,noreferrer');
     },

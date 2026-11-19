@@ -2,6 +2,7 @@ import { mount } from 'svelte';
 import type { Platform } from '@marktype/platform';
 import { createTranslator, negotiateLocale } from '@marktype/i18n';
 import '@marktype/themes/base.css';
+import '@marktype/themes/chrome.css';
 import '@marktype/editor/editor.css';
 import { applySystemTheme } from './theme.ts';
 import App from './App.svelte';

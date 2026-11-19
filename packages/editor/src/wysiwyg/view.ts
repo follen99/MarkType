@@ -5,6 +5,7 @@ import { history } from 'prosemirror-history';
 import { dropCursor } from 'prosemirror-dropcursor';
 import { gapCursor } from 'prosemirror-gapcursor';
 import { tableEditing } from 'prosemirror-tables';
+import { search } from 'prosemirror-search';
 import { schema } from '../schema.ts';
 import type { MarkdownStyle } from '../markdown/processor.ts';
 import { buildInputRules } from './inputrules.ts';
@@ -117,6 +118,7 @@ export function createWysiwygState(doc: PMNode, options: WysiwygViewOptions): Ed
       dropCursor(),
       gapCursor(),
       tableEditing(),
+      search(),
       seamlessPlugin({ style: options.style, onEditLink: options.onEditLink }),
       clickPlugin(options),
     ],

@@ -3,8 +3,20 @@ import { getCurrentWebview } from '@tauri-apps/api/webview';
 import { getCurrentWindow } from '@tauri-apps/api/window';
 import { open, save } from '@tauri-apps/plugin-dialog';
 import { openUrl } from '@tauri-apps/plugin-opener';
-import { hasUrlScheme, type FileRef, type FileStamp, type OsName, type Platform } from '@marktype/platform';
-import { basename, decodePathComponent, dirname, isAbsolutePath, resolvePath } from './paths.ts';
+import {
+  basename,
+  decodePathComponent,
+  dirname,
+  hasUrlScheme,
+  isAbsolutePath,
+  localPrefs,
+  resolvePath,
+  type FileRef,
+  type FileStamp,
+  type FolderEntry,
+  type OsName,
+  type Platform,
+} from '@marktype/platform';
 
 interface AppInfo {
   version: string;
@@ -17,6 +29,14 @@ const KNOWN_OS: readonly OsName[] = ['windows', 'macos', 'linux', 'android', 'io
 const MARKDOWN_FILTER = { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx', 'txt'] };
 
 const fileRef = (path: string): FileRef => ({ id: path, name: basename(path) });
+
+/** Local file a markdown path refers to, relative to the document `doc`. */
+function localPath(doc: FileRef | null, src: string): string | null {
+  if (!src || hasUrlScheme(src) || src.startsWith('//') || src.startsWith('#')) return null;
+  const decoded = decodePathComponent(src.split('#')[0]!);
+  if (isAbsolutePath(decoded)) return decoded;
+  return doc ? resolvePath(dirname(doc.id), decoded) : null;
+}
 
 export async function createTauriPlatform(): Promise<Platform> {
   const info = await invoke<AppInfo>('app_info');
@@ -58,13 +78,34 @@ export async function createTauriPlatform(): Promise<Platform> {
         return result.status === 'ok' ? { status: 'ok', stamp: result.stamp } : { status: 'conflict' };
       },
     },
-    resolveAssetUrl(doc, src) {
-      if (!src || hasUrlScheme(src) || src.startsWith('//')) return src;
-      const decoded = decodePathComponent(src);
-      if (isAbsolutePath(decoded)) return convertFileSrc(decoded);
-      if (!doc) return src;
-      return convertFileSrc(resolvePath(dirname(doc.id), decoded));
+    folders: {
+      async pick() {
+        const path = await open({ multiple: false, directory: true });
+        return typeof path === 'string' ? path : null;
+      },
+      open: (path) => invoke<FolderEntry[]>('open_folder', { path }),
+      list: (path) => invoke<FolderEntry[]>('list_dir', { path }),
+      markdownFiles: (root) => invoke<string[]>('list_markdown_files', { root }),
+      search: (root, options) => invoke('search_folder', { root, options }),
+      createFile: (dir, name) => invoke<string>('create_file_in', { dir, name }),
+      createFolder: (dir, name) => invoke<string>('create_folder_in', { dir, name }),
+      rename: (path, newName) => invoke<string>('rename_path', { path, newName }),
+      move: (path, targetDir) => invoke<string>('move_path', { path, targetDir }),
+      trash: (path) => invoke('trash_path', { path }),
+      fileRef,
     },
+    drafts: {
+      save: (draft) => invoke('save_draft', { draft }),
+      remove: (id) => invoke('remove_draft', { id }),
+      list: () => invoke('list_drafts'),
+    },
+    prefs: localPrefs('marktype.'),
+    resolveAssetUrl(doc, src) {
+      const path = localPath(doc, src);
+      if (path) return convertFileSrc(path);
+      return src;
+    },
+    resolveLocalLink: (doc, href) => localPath(doc, href),
     openExternal: (url) => openUrl(url),
   };
 }

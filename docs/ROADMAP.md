@@ -39,17 +39,22 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - Da testare: scrittura quotidiana su un file, scorciatoie, cambio di modalità, salvataggio, `samples/showcase.md`.
 
 ## M2: Cartelle, schede, sidebar → **alpha 2**
-- [ ] Apri cartella, albero dei file (lazy, filtro per estensione)
-- [ ] Scheda "Indice" (TOC) con il titolo corrente evidenziato e navigazione
-- [ ] Schede dei documenti + nuove finestre
-- [ ] Gestione file: nuovo, rinomina, sposta (drag & drop), elimina nel cestino
-- [ ] Quick open `Ctrl+P` (fuzzy)
-- [ ] Ricerca nella cartella (Rust, streaming dei risultati)
-- [ ] Cerca e sostituisci nel documento
-- [ ] Autosalvataggio (configurabile)
-- [ ] Recupero bozze dopo una chiusura anomala
-- [ ] Controllo dell'mtime prima di scrivere (protezione dalle modifiche esterne)
-- Da testare: lavorare su una cartella reale (es. una repo di note), più schede, crash simulato.
+- [x] Apri cartella, albero dei file (lazy, solo cartelle e markdown, ordine naturale, ultima cartella riaperta all'avvio)
+- [x] Scheda "Indice" (TOC) con il titolo corrente evidenziato e navigazione
+- [x] Schede dei documenti (`Ctrl+Tab`, `Ctrl+W`, `Ctrl+Shift+T`, clic centrale per chiudere)
+- [ ] Nuove finestre (rimandato: le schede coprono il caso d'uso principale)
+- [x] Gestione file: nuovo, rinomina, sposta (drag & drop), elimina nel cestino, copia percorso
+- [x] Quick open `Ctrl+P` (fuzzy, schede aperte + file della cartella + recenti)
+- [x] Ricerca nella cartella (Rust, rispetta `.gitignore`, max 2000 risultati)
+- [x] Cerca e sostituisci nel documento (`Ctrl+F` / `Ctrl+H`, regex, maiuscole, parola intera) in tutte le modalità
+- [x] Autosalvataggio (File → Salvataggio automatico, anche al cambio scheda e quando la finestra perde il focus)
+- [x] Recupero bozze dopo una chiusura anomala
+- [x] Controllo dell'mtime prima di scrivere (protezione dalle modifiche esterne)
+- [x] Etichetta della modalità nella barra di stato cliccabile (visuale → sorgente → divisa)
+- [x] Scorciatoie che seguono il layout della tastiera (`Ctrl+-` / `Ctrl++` sul layout italiano)
+- [x] Ctrl+clic su un link a un file `.md` locale lo apre in una scheda
+- Da testare: lavorare su una cartella reale (es. una repo di note), più schede, crash simulato
+  (termina MarkType dal Task Manager con modifiche non salvate e riaprilo).
 
 ## M3: Rendering avanzato → **alpha 3**
 - [ ] Evidenziazione della sintassi nei blocchi di codice (linguaggi lazy, classi `cm-*`)

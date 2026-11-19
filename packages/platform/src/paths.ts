@@ -34,3 +34,32 @@ export function decodePathComponent(src: string): string {
     return src;
   }
 }
+
+/** True if `path` is `folder` or inside it. */
+export function isInside(path: string, folder: string): boolean {
+  const norm = (p: string) => p.replace(/\\/g, '/').replace(/\/+$/, '').toLowerCase();
+  const a = norm(path);
+  const b = norm(folder);
+  return a === b || a.startsWith(`${b}/`);
+}
+
+/** `child` relative to `folder`, with `/` separators (for display). */
+export function relativePath(child: string, folder: string): string {
+  const a = child.replace(/\\/g, '/');
+  const b = folder.replace(/\\/g, '/').replace(/\/+$/, '');
+  return a.toLowerCase().startsWith(`${b.toLowerCase()}/`) ? a.slice(b.length + 1) : a;
+}
+
+/** Relative markdown path from the document at `fromFile` to `toFile` (for links between notes). */
+export function relativeLink(fromFile: string, toFile: string): string {
+  const from = dirname(fromFile).replace(/\\/g, '/').split('/');
+  const to = toFile.replace(/\\/g, '/').split('/');
+  let common = 0;
+  while (
+    common < from.length &&
+    common < to.length &&
+    from[common]!.toLowerCase() === to[common]!.toLowerCase()
+  )
+    common++;
+  return [...Array(from.length - common).fill('..'), ...to.slice(common)].join('/');
+}

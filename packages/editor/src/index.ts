@@ -1,4 +1,13 @@
-export { EditorHost, type EditorHostOptions, type EditorMode, type EditorStatus } from './host.ts';
+export {
+  EditorHost,
+  type EditorHostOptions,
+  type EditorMode,
+  type EditorStatus,
+  type OutlineItem,
+  type FindQuery,
+  type FindResult,
+  type FindAction,
+} from './host.ts';
 export { EDITOR_COMMANDS, isEditorCommand, type EditorCommandId } from './commands.ts';
 export { defaultMarkdownStyle, type MarkdownStyle } from './markdown/processor.ts';
 export { parseMarkdown } from './markdown/parse.ts';

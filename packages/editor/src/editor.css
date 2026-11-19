@@ -341,3 +341,16 @@
   font-style: italic;
   color: var(--meta-content-color);
 }
+
+/* ---------- Find highlights ---------- */
+
+#write .ProseMirror-search-match,
+#typora-source .cm-searchMatch {
+  border-radius: 2px;
+  background: var(--search-hit-bg-color, rgba(255, 200, 0, 0.35));
+}
+
+#write .ProseMirror-active-search-match,
+#typora-source .cm-searchMatch-selected {
+  background: var(--search-select-bg-color, rgba(255, 140, 0, 0.6));
+}

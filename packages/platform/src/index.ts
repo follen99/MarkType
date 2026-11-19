@@ -65,6 +65,67 @@ export interface CloseGuard {
   confirmClose(): Promise<boolean>;
 }
 
+export interface FolderEntry {
+  name: string;
+  path: string;
+  isDir: boolean;
+}
+
+export interface FolderSearchOptions {
+  query: string;
+  caseSensitive: boolean;
+  wholeWord: boolean;
+  regex: boolean;
+}
+
+export interface FolderSearchResults {
+  files: {
+    path: string;
+    /** `ranges` are [start, end) indices in `text`. */
+    matches: { line: number; text: string; ranges: [number, number][] }[];
+  }[];
+  total: number;
+  truncated: boolean;
+}
+
+/** Folder access (desktop only). Paths are absolute. */
+export interface FoldersApi {
+  pick(): Promise<string | null>;
+  /** Grants access to the folder tree and lists its first level. */
+  open(path: string): Promise<FolderEntry[]>;
+  list(path: string): Promise<FolderEntry[]>;
+  markdownFiles(root: string): Promise<string[]>;
+  search(root: string, options: FolderSearchOptions): Promise<FolderSearchResults>;
+  createFile(dir: string, name: string): Promise<string>;
+  createFolder(dir: string, name: string): Promise<string>;
+  rename(path: string, newName: string): Promise<string>;
+  move(path: string, targetDir: string): Promise<string>;
+  /** Moves to the OS trash / recycle bin. */
+  trash(path: string): Promise<void>;
+  fileRef(path: string): FileRef;
+}
+
+/** A copy of unsaved changes, kept to recover them after a crash. */
+export interface Draft {
+  id: string;
+  path: string | null;
+  name: string;
+  text: string;
+  savedAt: number;
+}
+
+export interface DraftsApi {
+  save(draft: Draft): Promise<void>;
+  remove(id: string): Promise<void>;
+  list(): Promise<Draft[]>;
+}
+
+/** Small persistent key/value store for UI state (until settings.json lands in M6). */
+export interface PrefsApi {
+  get<T>(key: string, fallback: T): T;
+  set(key: string, value: unknown): void;
+}
+
 export interface Platform {
   readonly kind: PlatformKind;
   readonly os: OsName;
@@ -72,10 +133,39 @@ export interface Platform {
   readonly capabilities: PlatformCapabilities;
   readonly window: WindowApi;
   readonly files: FilesApi;
+  /** null where folders cannot be opened (web). */
+  readonly folders: FoldersApi | null;
+  readonly drafts: DraftsApi;
+  readonly prefs: PrefsApi;
   /** URL the webview can load for an image `src` written in the document `doc`. */
   resolveAssetUrl(doc: FileRef | null, src: string): string;
+  /** Local path a relative link in `doc` points to, or null (web, or not a local link). */
+  resolveLocalLink(doc: FileRef | null, href: string): string | null;
   openExternal(url: string): Promise<void>;
 }
+
+/** localStorage-backed prefs; every access is guarded (private mode, blocked storage). */
+export function localPrefs(prefix: string): PrefsApi {
+  return {
+    get<T>(key: string, fallback: T): T {
+      try {
+        const raw = localStorage.getItem(prefix + key);
+        return raw === null ? fallback : (JSON.parse(raw) as T);
+      } catch {
+        return fallback;
+      }
+    },
+    set(key, value) {
+      try {
+        localStorage.setItem(prefix + key, JSON.stringify(value));
+      } catch {
+        // storage unavailable: preferences are just not remembered
+      }
+    },
+  };
+}
+
+export * from './paths.ts';
 
 const URL_SCHEME = /^[a-z][a-z0-9+.-]*:/i;
 

@@ -1,7 +1,17 @@
 import type { Node as PMNode } from 'prosemirror-model';
+import { TextSelection } from 'prosemirror-state';
 import type { EditorView as PMView } from 'prosemirror-view';
-import type { EditorView as CMView } from '@codemirror/view';
+import { EditorView as CMView } from '@codemirror/view';
 import type { EditorCommandId } from './commands.ts';
+import {
+  cmFind,
+  cmSetFind,
+  pmFind,
+  pmSetFind,
+  type FindAction,
+  type FindQuery,
+  type FindResult,
+} from './find.ts';
 import { defaultMarkdownStyle, type MarkdownStyle } from './markdown/processor.ts';
 import { parseMarkdown, topLevelLines } from './markdown/parse.ts';
 import { serializeMarkdown } from './markdown/serialize.ts';
@@ -18,9 +28,19 @@ export interface EditorStatus extends TextStats {
   cursor: { line: number; column: number } | null;
 }
 
+export interface OutlineItem {
+  level: number;
+  text: string;
+}
+
 export interface EditorHostOptions {
   /** Markdown with `\n` line endings. */
   markdown: string;
+  /**
+   * The saved version of the document, when it differs from `markdown` (a recovered draft).
+   * Defaults to `markdown`.
+   */
+  savedMarkdown?: string;
   mode?: EditorMode;
   style?: MarkdownStyle;
   resolveUrl(src: string): string;
@@ -30,9 +50,48 @@ export interface EditorHostOptions {
   onChange?(): void;
   /** Debounced status (word count, cursor…). */
   onStatus?(status: EditorStatus): void;
+  /** Debounced list of headings. */
+  onOutline?(outline: OutlineItem[]): void;
+  /** Index in the outline of the heading at the top of the viewport (-1 before the first heading). */
+  onActiveHeading?(index: number): void;
 }
 
+export type { FindQuery, FindResult, FindAction };
+
 const STATUS_DELAY = 250;
+const ATX_HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
+const FENCE = /^ {0,3}(`{3,}|~{3,})/;
+
+/** Headings of markdown source with their 0-based line, skipping fenced code. */
+function sourceHeadings(text: string): (OutlineItem & { line: number })[] {
+  const out: (OutlineItem & { line: number })[] = [];
+  let fence: string | null = null;
+  text.split('\n').forEach((line, index) => {
+    const f = FENCE.exec(line);
+    if (f) {
+      if (!fence) fence = f[1]![0]!.repeat(f[1]!.length);
+      else if (f[1]!.startsWith(fence)) fence = null;
+      return;
+    }
+    if (fence) return;
+    const m = ATX_HEADING.exec(line);
+    if (m) out.push({ level: m[1]!.length, text: (m[2] ?? '').replace(/[*_`~]/g, ''), line: index });
+  });
+  return out;
+}
+
+/** Headings of a document with their position. */
+function docHeadings(doc: PMNode): (OutlineItem & { pos: number })[] {
+  const out: (OutlineItem & { pos: number })[] = [];
+  doc.descendants((node, pos) => {
+    if (node.type.name === 'heading') {
+      out.push({ level: node.attrs.level as number, text: node.textContent, pos });
+      return false;
+    }
+    return node.isBlock && !node.isTextblock;
+  });
+  return out;
+}
 
 /**
  * Owns the editing surfaces of one document and switches between WYSIWYG, source and split view.
@@ -54,18 +113,22 @@ export class EditorHost {
   private previewLines: number[] = [];
   private statusTimer: ReturnType<typeof setTimeout> | undefined;
   private previewTimer: ReturnType<typeof setTimeout> | undefined;
+  private scrollFrame = 0;
   private syncingScroll = false;
+  private findQuery: FindQuery | null = null;
+  private lastActiveHeading = -2;
 
   constructor(parent: HTMLElement, options: EditorHostOptions) {
     this.options = options;
     this.style = options.style ?? defaultMarkdownStyle;
-    this.cleanSource = options.markdown;
-    this.cleanDoc = parseMarkdown(options.markdown);
+    this.cleanSource = options.savedMarkdown ?? options.markdown;
+    this.cleanDoc = parseMarkdown(this.cleanSource);
     this._mode = options.mode ?? 'wysiwyg';
     this.dom = document.createElement('div');
     this.dom.className = 'mt-editor';
     parent.appendChild(this.dom);
-    this.mount(this._mode, this.cleanDoc, this.cleanSource);
+    const doc = options.markdown === this.cleanSource ? this.cleanDoc : parseMarkdown(options.markdown);
+    this.mount(this._mode, doc, options.markdown);
   }
 
   get mode(): EditorMode {
@@ -86,6 +149,13 @@ export class EditorHost {
     return !this.wysiwyg!.state.doc.eq(this.cleanDoc);
   }
 
+  /** True if the document has no content at all. */
+  isEmpty(): boolean {
+    if (this.source) return this.source.state.doc.length === 0;
+    const doc = this.wysiwyg!.state.doc;
+    return doc.childCount === 1 && doc.firstChild!.isTextblock && doc.firstChild!.content.size === 0;
+  }
+
   /** Marks the current content as saved. `savedText` is what was written to disk. */
   markClean(savedText = this.getMarkdown()): void {
     this.cleanSource = savedText;
@@ -101,6 +171,7 @@ export class EditorHost {
     this.unmount();
     this._mode = mode;
     this.mount(mode, doc, text);
+    if (this.findQuery) this.setFind(this.findQuery, false);
     this.focus();
   }
 
@@ -119,6 +190,7 @@ export class EditorHost {
           this.scheduleStatus();
         },
       });
+      pane.addEventListener('scroll', this.onScroll, { passive: true });
     } else {
       const sourcePane = this.pane('mt-source-pane');
       sourcePane.id = 'typora-source';
@@ -133,6 +205,7 @@ export class EditorHost {
         },
       });
       this.source.dom.classList.add('CodeMirror', 'cm-s-inner');
+      this.source.scrollDOM.addEventListener('scroll', this.onScroll, { passive: true });
       if (mode === 'split') {
         const previewPane = this.pane('mt-preview-pane');
         this.preview = createWysiwygView(previewPane, doc, {
@@ -142,7 +215,6 @@ export class EditorHost {
           openLink: this.options.openLink,
         });
         this.previewLines = topLevelLines(text);
-        this.source.scrollDOM.addEventListener('scroll', this.onSourceScroll, { passive: true });
       }
     }
     this.scheduleStatus(0);
@@ -157,13 +229,26 @@ export class EditorHost {
 
   private unmount(): void {
     clearTimeout(this.previewTimer);
-    this.source?.scrollDOM.removeEventListener('scroll', this.onSourceScroll);
+    cancelAnimationFrame(this.scrollFrame);
     this.wysiwyg?.destroy();
     this.source?.destroy();
     this.preview?.destroy();
     this.wysiwyg = this.source = this.preview = null;
     this.dom.replaceChildren();
   }
+
+  /** The scrolling element of the main editing surface. */
+  private get scroller(): HTMLElement | null {
+    return this.source?.scrollDOM ?? (this.wysiwyg?.dom.parentElement as HTMLElement | null) ?? null;
+  }
+
+  private onScroll = (): void => {
+    cancelAnimationFrame(this.scrollFrame);
+    this.scrollFrame = requestAnimationFrame(() => {
+      if (this.preview) this.syncPreview();
+      this.emitActiveHeading();
+    });
+  };
 
   // ---------- split view ----------
 
@@ -176,12 +261,12 @@ export class EditorHost {
       const { state } = this.preview;
       this.preview.updateState(state.apply(state.tr.replaceWith(0, state.doc.content.size, doc.content)));
       this.previewLines = topLevelLines(text);
-      this.onSourceScroll();
+      this.syncPreview();
     }, 150);
   }
 
   /** Scrolls the preview so the block at the top of the source view is at the top of the preview. */
-  private onSourceScroll = (): void => {
+  private syncPreview(): void {
     if (!this.source || !this.preview || this.syncingScroll) return;
     const scroller = this.source.scrollDOM;
     const topBlock = this.source.lineBlockAtHeight(scroller.scrollTop);
@@ -200,7 +285,112 @@ export class EditorHost {
     this.syncingScroll = true;
     previewPane.scrollTop = scroller.scrollTop <= 0 ? 0 : top;
     requestAnimationFrame(() => (this.syncingScroll = false));
-  };
+  }
+
+  // ---------- outline & navigation ----------
+
+  outline(): OutlineItem[] {
+    if (this.source)
+      return sourceHeadings(this.source.state.doc.toString()).map(({ level, text }) => ({ level, text }));
+    return docHeadings(this.wysiwyg!.state.doc).map(({ level, text }) => ({ level, text }));
+  }
+
+  private activeHeadingIndex(): number {
+    const scroller = this.scroller;
+    if (!scroller) return -1;
+    const threshold = scroller.getBoundingClientRect().top + 48;
+    if (this.source) {
+      const top = this.source.lineBlockAtHeight(scroller.scrollTop + 48);
+      const topLine = this.source.state.doc.lineAt(top.from).number - 1;
+      const headings = sourceHeadings(this.source.state.doc.toString());
+      return headings.findLastIndex((h) => h.line <= topLine);
+    }
+    const view = this.wysiwyg!;
+    const headings = docHeadings(view.state.doc);
+    let active = -1;
+    for (let i = 0; i < headings.length; i++) {
+      const dom = view.nodeDOM(headings[i]!.pos) as HTMLElement | null;
+      if (!dom?.getBoundingClientRect) continue;
+      if (dom.getBoundingClientRect().top <= threshold) active = i;
+      else break;
+    }
+    return active;
+  }
+
+  private emitActiveHeading(force = false): void {
+    if (!this.options.onActiveHeading) return;
+    const index = this.activeHeadingIndex();
+    if (force || index !== this.lastActiveHeading) {
+      this.lastActiveHeading = index;
+      this.options.onActiveHeading(index);
+    }
+  }
+
+  /** Scrolls the heading with this outline index to the top and puts the cursor on it. */
+  revealHeading(index: number): void {
+    if (this.source) {
+      const heading = sourceHeadings(this.source.state.doc.toString())[index];
+      if (!heading) return;
+      const pos = this.source.state.doc.line(heading.line + 1).from;
+      this.source.dispatch({
+        selection: { anchor: pos },
+        effects: CMView.scrollIntoView(pos, { y: 'start', yMargin: 24 }),
+      });
+    } else {
+      const view = this.wysiwyg!;
+      const heading = docHeadings(view.state.doc)[index];
+      if (!heading) return;
+      view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(heading.pos + 1))));
+      const dom = view.nodeDOM(heading.pos) as HTMLElement | null;
+      const scroller = this.scroller;
+      if (dom && scroller) {
+        const offset = dom.getBoundingClientRect().top - scroller.getBoundingClientRect().top;
+        scroller.scrollTo({ top: scroller.scrollTop + offset - 24, behavior: 'smooth' });
+      }
+    }
+    this.focus();
+  }
+
+  /** Scrolls to a 1-based line of the markdown source (e.g. a folder search result). */
+  revealLine(line: number): void {
+    if (this.source) {
+      const target = this.source.state.doc.line(Math.min(Math.max(1, line), this.source.state.doc.lines));
+      this.source.dispatch({
+        selection: { anchor: target.from, head: target.to },
+        effects: CMView.scrollIntoView(target.from, { y: 'center' }),
+      });
+    } else {
+      const view = this.wysiwyg!;
+      const lines = topLevelLines(this.getMarkdown());
+      let index = 0;
+      while (index + 1 < lines.length && lines[index + 1]! <= line - 1) index++;
+      let pos = 0;
+      for (let i = 0; i < index && i < view.state.doc.childCount; i++)
+        pos += view.state.doc.child(i).nodeSize;
+      view.dispatch(
+        view.state.tr.setSelection(
+          TextSelection.near(view.state.doc.resolve(Math.min(pos + 1, view.state.doc.content.size))),
+        ),
+      );
+      (view.nodeDOM(pos) as HTMLElement | null)?.scrollIntoView?.({ block: 'center' });
+    }
+    this.focus();
+  }
+
+  // ---------- find & replace ----------
+
+  /** Sets (or clears, with null) the search. With `jump`, selects the first match after the cursor. */
+  setFind(query: FindQuery | null, jump = true): FindResult {
+    this.findQuery = query?.text ? query : null;
+    if (this.source) return cmSetFind(this.source, query, jump);
+    return pmSetFind(this.wysiwyg!, query, jump);
+  }
+
+  find(action: FindAction): FindResult {
+    if (!this.findQuery) return { count: 0, current: 0, valid: true };
+    if (this.source) return cmFind(this.source, action);
+    return pmFind(this.wysiwyg!, action);
+  }
 
   // ---------- commands & status ----------
 
@@ -215,9 +405,12 @@ export class EditorHost {
   }
 
   private scheduleStatus(delay = STATUS_DELAY): void {
-    if (!this.options.onStatus) return;
     clearTimeout(this.statusTimer);
-    this.statusTimer = setTimeout(() => this.options.onStatus?.(this.status()), delay);
+    this.statusTimer = setTimeout(() => {
+      this.options.onStatus?.(this.status());
+      this.options.onOutline?.(this.outline());
+      this.emitActiveHeading(true);
+    }, delay);
   }
 
   status(): EditorStatus {

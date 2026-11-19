@@ -5,6 +5,7 @@
   "license": "GPL-3.0-only",
   "exports": {
     "./base.css": "./base.css",
+    "./chrome.css": "./chrome.css",
     "./builtin/*": "./builtin/*"
   }
 }

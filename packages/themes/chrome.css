@@ -1,0 +1,685 @@
+/*
+ * MarkType chrome around the document: sidebar, tabs, find bar, quick open, context menus.
+ * Loaded after base.css; colors come from the Typora variables so every theme restyles it.
+ */
+
+/* ---------- Body layout: sidebar + content ---------- */
+
+.mt-body {
+  display: flex;
+  min-height: 0;
+}
+
+.mt-content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.mt-editor-area {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+}
+
+#mt-main {
+  position: relative;
+  height: 100%;
+}
+
+.mt-doc {
+  position: absolute;
+  inset: 0;
+}
+
+.mt-doc[hidden] {
+  display: none;
+}
+
+/* ---------- Shared controls ---------- */
+
+.mt-icon {
+  display: block;
+  flex: none;
+}
+
+.mt-icon-buttons {
+  display: flex;
+  gap: 2px;
+}
+
+.mt-icon-button {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: var(--control-text-color);
+  transition: background var(--mt-transition);
+}
+
+.mt-icon-button:hover {
+  background: var(--item-hover-bg-color);
+  color: var(--control-text-hover-color);
+}
+
+.mt-toggle-group {
+  display: flex;
+  gap: 2px;
+}
+
+.mt-toggle {
+  min-width: 24px;
+  height: 22px;
+  padding: 0 4px;
+  border: 1px solid transparent;
+  border-radius: 4px;
+  background: transparent;
+  color: var(--control-text-color);
+  font-family: var(--monospace);
+  font-size: 11.5px;
+}
+
+.mt-toggle:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.mt-toggle.on {
+  border-color: var(--primary-color);
+  background: var(--select-text-bg-color);
+  color: var(--primary-color);
+}
+
+.mt-button-small {
+  min-width: 0;
+  padding: 3px 10px;
+  font-size: 12px;
+}
+
+.mt-error,
+.mt-menu-item.danger {
+  color: #d9534f;
+}
+
+.mt-menu-label {
+  display: flex;
+  align-items: center;
+}
+
+.mt-menu-check {
+  display: inline-block;
+  width: 18px;
+  margin-left: -4px;
+  color: var(--primary-color);
+}
+
+.mt-context-menu {
+  position: fixed;
+  min-width: 200px;
+}
+
+/* ---------- Sidebar (Typora-compatible ids and classes) ---------- */
+
+#typora-sidebar {
+  position: relative;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  border-right: var(--window-border);
+  background: var(--side-bar-bg-color);
+  color: var(--side-bar-text-color);
+}
+
+.sidebar-tabs {
+  display: flex;
+  gap: 2px;
+  padding: 6px 8px 4px;
+}
+
+.sidebar-tab {
+  flex: 1;
+  padding: 5px 4px;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: var(--control-text-color);
+  font: inherit;
+  font-size: 12px;
+  transition: background var(--mt-transition);
+}
+
+.sidebar-tab:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.sidebar-tab.active {
+  background: var(--active-file-bg-color);
+  color: var(--control-text-hover-color);
+  font-weight: 600;
+}
+
+.sidebar-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 0 24px;
+}
+
+.mt-sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: -3px;
+  bottom: 0;
+  z-index: 5;
+  width: 6px;
+  cursor: col-resize;
+}
+
+.mt-sidebar-resizer:hover {
+  background: var(--select-text-bg-color);
+}
+
+.mt-sidebar-empty {
+  margin: 12px 14px;
+  line-height: 1.5;
+  color: var(--control-text-color);
+}
+
+.mt-sidebar-heading {
+  margin: 18px 14px 6px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--control-text-color);
+}
+
+.mt-files-empty > .mt-button {
+  margin: 0 14px;
+}
+
+/* File tree */
+
+.mt-files-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin: 0 6px 4px;
+  padding: 2px 4px 2px 8px;
+  border-radius: var(--mt-radius-small);
+}
+
+.mt-files-title {
+  overflow: hidden;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--control-text-color);
+}
+
+.file-tree,
+.file-node-children,
+.file-list,
+.outline-content,
+.mt-search-results,
+.mt-search-results ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.file-node-content {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: 0 6px;
+  padding: 3px 8px 3px calc(6px + var(--mt-depth, 0) * 14px);
+  border-radius: var(--mt-radius-small);
+  cursor: default;
+  white-space: nowrap;
+  transition: background var(--mt-transition);
+}
+
+.file-node-content:hover {
+  background: var(--item-hover-bg-color);
+  color: var(--item-hover-text-color);
+}
+
+.file-tree-node.active > .file-node-content {
+  background: var(--active-file-bg-color);
+  color: var(--active-file-text-color);
+}
+
+.mt-drop-target {
+  outline: 2px dashed var(--primary-color);
+  outline-offset: -2px;
+}
+
+.file-node-open-state {
+  width: 12px;
+  color: var(--control-text-color);
+  transition: transform var(--mt-transition);
+}
+
+.file-node-open-state.open {
+  transform: rotate(90deg);
+}
+
+.file-node-icon {
+  color: var(--control-text-color);
+}
+
+.file-node-title {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Recent files */
+
+.file-list-item-button {
+  display: grid;
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 5px 8px;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+}
+
+.file-list-item-button:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.file-list-item.active .file-list-item-button {
+  background: var(--active-file-bg-color);
+}
+
+.file-list-item-file-name,
+.file-list-item-parent-loc {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.file-list-item-parent-loc {
+  font-size: 11px;
+  color: var(--control-text-color);
+}
+
+/* Outline */
+
+.outline-label {
+  display: block;
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 4px 8px 4px calc(8px + var(--mt-outline-depth, 0) * 14px);
+  overflow: hidden;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0 var(--mt-radius-small) var(--mt-radius-small) 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  transition: background var(--mt-transition);
+}
+
+.outline-label:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.outline-h1 > .outline-label {
+  font-weight: 600;
+}
+
+.outline-item-active > .outline-label {
+  border-left-color: var(--primary-color);
+  background: var(--active-file-bg-color);
+  color: var(--control-text-hover-color);
+}
+
+/* Search in folder */
+
+.mt-search-box {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 2px 12px 8px;
+}
+
+.mt-search-summary {
+  margin: 4px 14px 8px;
+  font-size: 11.5px;
+  color: var(--control-text-color);
+}
+
+.mt-search-file-name {
+  margin: 8px 14px 2px;
+  overflow: hidden;
+  font-size: 11.5px;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mt-search-hit {
+  display: flex;
+  gap: 8px;
+  width: calc(100% - 12px);
+  margin: 0 6px;
+  padding: 3px 8px;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  font-size: 12px;
+  text-align: left;
+}
+
+.mt-search-hit:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.mt-search-line {
+  flex: none;
+  min-width: 2em;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  color: var(--control-text-color);
+}
+
+.mt-search-text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.mt-search-text mark,
+.mt-palette-name b {
+  border-radius: 2px;
+  background: var(--search-hit-bg-color, rgba(255, 200, 0, 0.4));
+  color: inherit;
+  font-weight: inherit;
+}
+
+/* ---------- Tabs ---------- */
+
+.mt-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 2px;
+  height: 34px;
+  padding: 4px 8px 0;
+  overflow-x: auto;
+  scrollbar-width: none;
+  border-bottom: var(--window-border);
+  background: var(--mt-titlebar-bg);
+}
+
+.mt-tab {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 220px;
+  padding: 0 6px 0 12px;
+  border: var(--window-border);
+  border-bottom: 0;
+  border-radius: var(--mt-radius) var(--mt-radius) 0 0;
+  background: transparent;
+  color: var(--control-text-color);
+  cursor: default;
+  white-space: nowrap;
+  transition: background var(--mt-transition);
+}
+
+.mt-tab:not(.active) {
+  border-color: transparent;
+}
+
+.mt-tab:hover {
+  background: var(--item-hover-bg-color);
+}
+
+.mt-tab.active {
+  position: relative;
+  top: 1px;
+  background: var(--bg-color);
+  color: var(--text-color);
+}
+
+.mt-tab-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.mt-tab-close {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 20px;
+  height: 20px;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  opacity: 0;
+}
+
+.mt-tab:hover .mt-tab-close,
+.mt-tab.active .mt-tab-close,
+.mt-tab.dirty .mt-tab-close {
+  opacity: 0.8;
+}
+
+.mt-tab-close:hover {
+  background: var(--item-hover-bg-color);
+  opacity: 1;
+}
+
+/* Unsaved tabs show a dot that turns into the close button on hover. */
+.mt-tab-dot {
+  display: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.mt-tab.dirty .mt-tab-dot {
+  display: block;
+}
+
+.mt-tab.dirty .mt-tab-close > .mt-icon,
+.mt-tab.dirty .mt-tab-close:hover .mt-tab-dot {
+  display: none;
+}
+
+.mt-tab.dirty .mt-tab-close:hover > .mt-icon {
+  display: block;
+}
+
+.mt-tab-new {
+  display: grid;
+  place-items: center;
+  align-self: center;
+  width: 24px;
+  height: 24px;
+  margin-bottom: 4px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: var(--control-text-color);
+}
+
+.mt-tab-new:hover {
+  background: var(--item-hover-bg-color);
+}
+
+/* ---------- Find bar ---------- */
+
+.mt-findbar {
+  position: absolute;
+  top: 8px;
+  right: 22px;
+  z-index: 50;
+  display: flex;
+  align-items: flex-start;
+  gap: 4px;
+  padding: 6px;
+  border: var(--window-border);
+  border-radius: var(--mt-radius);
+  background: var(--bg-color);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+  animation: mt-pop var(--mt-transition);
+}
+
+.mt-findbar-rows {
+  display: grid;
+  gap: 4px;
+}
+
+.mt-findbar-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.mt-findbar-row .mt-input {
+  width: 220px;
+  padding: 4px 8px;
+}
+
+.mt-findbar-count {
+  min-width: 64px;
+  font-size: 11.5px;
+  text-align: center;
+  white-space: nowrap;
+  color: var(--control-text-color);
+}
+
+.mt-findbar-chevron {
+  display: block;
+  transition: transform var(--mt-transition);
+}
+
+.mt-findbar-chevron.open {
+  transform: rotate(90deg);
+}
+
+/* ---------- Quick open ---------- */
+
+.mt-palette-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 900;
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  padding: 72px 16px 16px;
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.mt-palette {
+  display: flex;
+  flex-direction: column;
+  width: min(600px, 100%);
+  max-height: 60vh;
+  overflow: hidden;
+  border: var(--window-border);
+  border-radius: 12px;
+  background: var(--bg-color);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.3);
+  animation: mt-pop var(--mt-transition);
+}
+
+.mt-palette-input {
+  width: auto;
+  margin: 10px;
+  padding: 9px 12px;
+  font-size: 14px;
+}
+
+.mt-palette-list {
+  margin: 0;
+  padding: 0 6px 6px;
+  overflow: auto;
+  list-style: none;
+}
+
+.mt-palette-item {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  width: 100%;
+  padding: 7px 10px;
+  border: 0;
+  border-radius: var(--mt-radius-small);
+  background: transparent;
+  color: var(--text-color);
+  font: inherit;
+  text-align: left;
+}
+
+.mt-palette-item.active {
+  background: var(--active-file-bg-color);
+}
+
+.mt-palette-name {
+  flex: none;
+  white-space: nowrap;
+}
+
+.mt-palette-path {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--control-text-color);
+}
+
+.mt-palette-badge {
+  flex: none;
+  font-size: 11px;
+  color: var(--primary-color);
+}
+
+.mt-palette-empty {
+  padding: 10px;
+  color: var(--control-text-color);
+}
+
+/* ---------- Status bar mode switch ---------- */
+
+.mt-status-mode {
+  margin-left: -6px;
+  padding: 1px 6px;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+}
+
+.mt-status-mode:hover {
+  background: var(--item-hover-bg-color);
+  color: var(--control-text-hover-color);
+}

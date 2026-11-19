@@ -14,6 +14,7 @@ import {
 import { syntaxHighlighting, indentUnit } from '@codemirror/language';
 import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { tagHighlighter, tags } from '@lezer/highlight';
+import { search, highlightSelectionMatches } from '@codemirror/search';
 import type { EditorCommandId } from '../commands.ts';
 
 /** Token classes named like CodeMirror 5's markdown mode, so Typora themes style source mode too. */
@@ -45,6 +46,8 @@ export function createSourceView(parent: HTMLElement, text: string, options: Sou
       doc: text,
       extensions: [
         history(),
+        search(),
+        highlightSelectionMatches(),
         drawSelection(),
         highlightActiveLine(),
         EditorView.lineWrapping,
