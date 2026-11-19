@@ -45,3 +45,15 @@ describe('pasted HTML → markdown', () => {
     expect(htmlHasText('<p>hi <img src="a.png"></p>')).toBe(true);
   });
 });
+
+describe('slugify (export heading ids)', () => {
+  it('makes readable unique ids', async () => {
+    const { slugify } = await import('../src/export.ts');
+    const used = new Set<string>();
+    expect(slugify('Perché è così?', used)).toBe('perche-e-cosi');
+    expect(slugify('Perché è così?', used)).toBe('perche-e-cosi-1');
+    expect(slugify('  Hello   World! ', used)).toBe('hello-world');
+    expect(slugify('***', used)).toBe('section');
+    expect(slugify('日本語 1', used)).toBe('日本語-1');
+  });
+});

@@ -10,11 +10,12 @@ import {
   dirname,
   hasUrlScheme,
   isAbsolutePath,
-  localPrefs,
+  memoryPrefs,
   resolvePath,
   type FileRef,
   type FileStamp,
   type FolderEntry,
+  type LaunchPath,
   type OsName,
   type Platform,
 } from '@marktype/platform';
@@ -58,8 +59,57 @@ function localPath(doc: FileRef | null, src: string): string | null {
   return doc ? resolvePath(dirname(doc.id), decoded) : null;
 }
 
+interface LoadedSettings {
+  values: Record<string, unknown> | null;
+  error: string | null;
+  path: string;
+}
+
+const PREFS_PREFIX = 'marktype.';
+const MIGRATED_FLAG = `${PREFS_PREFIX}migratedToSettingsJson`;
+
+/** Preferences kept in localStorage up to v0.5, moved once into settings.json. */
+function legacyPrefs(): Record<string, unknown> {
+  const values: Record<string, unknown> = {};
+  try {
+    if (localStorage.getItem(MIGRATED_FLAG)) return values;
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (!key?.startsWith(PREFS_PREFIX) || key === MIGRATED_FLAG) continue;
+      try {
+        values[key.slice(PREFS_PREFIX.length)] = JSON.parse(localStorage.getItem(key) ?? 'null');
+      } catch {
+        // not JSON: not one of ours
+      }
+    }
+  } catch {
+    // storage unavailable
+  }
+  return values;
+}
+
+/** settings.json, created on first run from the old localStorage preferences. */
+async function loadSettings() {
+  const loaded = await invoke<LoadedSettings>('load_settings');
+  const persist = (patch: Record<string, unknown>) => invoke<void>('update_settings', { patch });
+  let values = loaded.values;
+  if (!values && !loaded.error) {
+    values = legacyPrefs();
+    await persist(values);
+    try {
+      localStorage.setItem(MIGRATED_FLAG, 'true');
+    } catch {
+      // storage unavailable
+    }
+  }
+  // A broken file is left alone: defaults for this session, nothing written.
+  const prefs = memoryPrefs(values ?? {}, loaded.error ? null : persist);
+  return { prefs, path: loaded.path, error: loaded.error };
+}
+
 export async function createTauriPlatform(): Promise<Platform> {
-  const info = await invoke<AppInfo>('app_info');
+  const [info, settings] = await Promise.all([invoke<AppInfo>('app_info'), loadSettings()]);
+  const { prefs } = settings;
   const os = (KNOWN_OS as readonly string[]).includes(info.os) ? (info.os as OsName) : 'unknown';
   const win = getCurrentWindow();
   const webview = getCurrentWebview();
@@ -82,6 +132,7 @@ export async function createTauriPlatform(): Promise<Platform> {
       onCloseRequested: (guard) =>
         win.onCloseRequested(async (event) => {
           if (guard.hasUnsavedChanges() && !(await guard.confirmClose())) event.preventDefault();
+          else await prefs.flush();
         }),
       // Tauri takes file drops from the OS (with their paths) instead of the page; positions are physical.
       onFileDrop: (cb) =>
@@ -165,7 +216,32 @@ export async function createTauriPlatform(): Promise<Platform> {
       pendingRoot: () => (pendingRoot ??= invoke<string>('pending_images_root')),
       discardPending: (docId) => invoke('discard_pending_images', { id: docId }),
     },
-    prefs: localPrefs('marktype.'),
+    prefs,
+    config: {
+      settingsPath: settings.path,
+      settingsError: settings.error,
+      keybindings: () => invoke<Record<string, unknown>>('read_keybindings'),
+      openFile: (name) => invoke('open_config_file', { name }),
+    },
+    launch: {
+      initial: () => invoke<LaunchPath[]>('take_launch_paths'),
+      onOpen: (cb) => listen<LaunchPath[]>('open-paths', ({ payload }) => cb(payload)),
+    },
+    export: {
+      async pickTarget(suggestedName, filter) {
+        return (await save({ defaultPath: suggestedName, filters: [filter] })) ?? null;
+      },
+      async writeText(path, text) {
+        await invoke('write_text_file', { path, text, expected: null });
+      },
+      open: (path) => invoke('open_export', { path }),
+      pandoc: {
+        version: (pandocPath) => invoke<string | null>('pandoc_version', { path: pandocPath }),
+        async run(job) {
+          await invoke('pandoc_export', { job });
+        },
+      },
+    },
     resolveAssetUrl(doc, src) {
       const path = localPath(doc, src);
       if (path) return convertFileSrc(path);

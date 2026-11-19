@@ -161,7 +161,11 @@ pub fn list(dir: &Path) -> ThemeList {
 /// User-editable configuration folder with a readable name (docs/THEMES.md, SPEC §16):
 /// `%APPDATA%\MarkType`, `~/Library/Application Support/MarkType`, `~/.config/marktype`.
 /// (Tauri's `app_config_dir` would use the bundle identifier instead.)
+/// `MARKTYPE_CONFIG_DIR` replaces it (used by the smoke test, to leave the user's settings alone).
 pub fn user_config_dir(app: &AppHandle) -> Result<PathBuf, String> {
+    if let Some(dir) = std::env::var_os("MARKTYPE_CONFIG_DIR").filter(|d| !d.is_empty()) {
+        return Ok(PathBuf::from(dir));
+    }
     let name = if cfg!(target_os = "linux") {
         "marktype"
     } else {

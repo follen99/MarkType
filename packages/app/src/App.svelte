@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isEditorCommand } from '@marktype/editor';
-  import { basename, type Platform } from '@marktype/platform';
+  import { basename, type LaunchPath, type Platform } from '@marktype/platform';
   import type { Translate } from '@marktype/i18n';
   import TitleBar from './chrome/TitleBar.svelte';
   import MenuBar from './chrome/MenuBar.svelte';
@@ -11,6 +11,8 @@
   import FindBar, { type FindBarApi } from './chrome/FindBar.svelte';
   import Sidebar from './sidebar/Sidebar.svelte';
   import ContextMenu from './ui/ContextMenu.svelte';
+  import SettingsDialog from './chrome/SettingsDialog.svelte';
+  import type { AppSettings, ExportFormat } from './settings.svelte.ts';
   import type { SlotItem } from './chrome/MenuBar.svelte';
   import type { ThemeManager } from './theme.svelte.ts';
   import { Dialogs } from './dialogs.svelte.ts';
@@ -22,16 +24,30 @@
   import {
     DEFAULT_KEYBINDINGS,
     buildShortcutMap,
+    effectiveKeybindings,
+    parseUserKeybindings,
     type CommandId,
     type MenuSlot,
   } from './commands/registry.ts';
-  import { shortcutCandidates } from './commands/keys.ts';
+  import { normalizeShortcut, shortcutCandidates } from './commands/keys.ts';
   import { DEFAULT_IMAGE_SETTINGS, isImageName, type ImageDestination, type ImageInput } from './images.ts';
 
   const MARKDOWN_FILE = /\.(md|markdown|mdown|mkd|mdx|txt)$/i;
+  const PANDOC_COMMANDS = new Set<CommandId>([
+    'exportDocx',
+    'exportOdt',
+    'exportRtf',
+    'exportEpub',
+    'exportLatex',
+  ]);
 
   // `platform`, `t` and `themes` are fixed for the lifetime of the app, so reading them once is intended.
-  let { platform, t, themes }: { platform: Platform; t: Translate; themes: ThemeManager } = $props();
+  let {
+    platform,
+    t,
+    themes,
+    settings,
+  }: { platform: Platform; t: Translate; themes: ThemeManager; settings: AppSettings } = $props();
 
   // svelte-ignore state_referenced_locally
   const { folders, prefs } = platform;
@@ -45,9 +61,12 @@
   const tree = folders ? new FileTree(folders) : null;
   // svelte-ignore state_referenced_locally
   const actions = folders && tree ? new FileActions(folders, tree, workspace, dialogs, t) : null;
-  const shortcuts = buildShortcutMap(DEFAULT_KEYBINDINGS);
+  // Defaults until keybindings.json is read (startup, below).
+  let keybindings = $state(DEFAULT_KEYBINDINGS);
+  const shortcuts = $derived(buildShortcutMap(keybindings));
 
   let quickOpen = $state(false);
+  let settingsOpen = $state(false);
   let findBar = $state<FindBarApi | undefined>(undefined);
 
   const ZOOM_STEPS = [0.5, 0.67, 0.75, 0.8, 0.9, 1, 1.1, 1.25, 1.5, 1.75, 2];
@@ -111,6 +130,25 @@
         return void active?.saveAs();
       case 'toggleAutosave':
         return workspace.toggleAutosave();
+      case 'exportHtml':
+        return void runExport('html');
+      case 'exportPdf':
+        return void runExport('pdf');
+      case 'exportDocx':
+        return void runExport('docx');
+      case 'exportOdt':
+        return void runExport('odt');
+      case 'exportRtf':
+        return void runExport('rtf');
+      case 'exportEpub':
+        return void runExport('epub');
+      case 'exportLatex':
+        return void runExport('latex');
+      case 'preferences':
+        settingsOpen = true;
+        return;
+      case 'openKeybindings':
+        return void platform.config?.openFile('keybindings');
       case 'closeTab':
         return void workspace.closeTab();
       case 'reopenTab':
@@ -164,6 +202,23 @@
           .alert('MarkType', t('about.message', { version: platform.appVersion }), t('dialog.ok'))
           .then(() => active?.focus());
     }
+  }
+
+  async function runExport(format: ExportFormat) {
+    const doc = active;
+    if (!doc) return;
+    const { exportDocument } = await import('./export.ts');
+    await exportDocument(
+      {
+        platform,
+        dialogs,
+        t,
+        doc,
+        css: { theme: themes.active, baseUserCssUrl: themes.baseUserCssUrl },
+        settings: settings.exportSettings,
+      },
+      format,
+    );
   }
 
   function pathInput(path: string): ImageInput {
@@ -243,8 +298,9 @@
     ];
   }
 
+  /** First shortcut of `id` that really runs it (a user binding may have taken it for another command). */
   function shortcutOf(id: CommandId): string | undefined {
-    return DEFAULT_KEYBINDINGS[id]?.[0];
+    return keybindings[id]?.find((shortcut) => shortcuts.get(normalizeShortcut(shortcut)) === id);
   }
 
   function isChecked(id: CommandId): boolean | undefined {
@@ -267,6 +323,8 @@
   function isVisible(id: CommandId): boolean {
     if (id === 'openThemesFolder') return platform.themes !== null;
     if (id === 'insertImageFile') return platform.images !== null;
+    if (id === 'openKeybindings') return platform.config !== null;
+    if (PANDOC_COMMANDS.has(id)) return platform.export.pandoc !== null;
     return true;
   }
 
@@ -290,7 +348,7 @@
   }
 
   function onKeydown(event: KeyboardEvent) {
-    if (dialogs.current || event.isComposing) return;
+    if (dialogs.current || settingsOpen || event.isComposing) return;
     let id: CommandId | undefined;
     for (const candidate of shortcutCandidates(event, isMac)) {
       id = shortcuts.get(candidate);
@@ -310,13 +368,59 @@
     workspace.attach(node);
   }
 
-  // Startup: reopen the last folder, then offer to recover unsaved work after a crash.
+  /** Files and folders from the command line, a double click, "Open with" or a second launch. */
+  async function openLaunchPaths(paths: LaunchPath[]) {
+    for (const entry of paths) {
+      if (entry.isDir) {
+        if (folders) await openFolder(entry.path).catch(() => undefined);
+      } else {
+        await workspace.openPath(entry.path);
+      }
+    }
+  }
+
+  async function loadKeybindings() {
+    if (!platform.config) return;
+    try {
+      const { bindings, invalid } = parseUserKeybindings(await platform.config.keybindings());
+      keybindings = effectiveKeybindings(bindings);
+      if (invalid.length)
+        await dialogs.alert(
+          'MarkType',
+          t('keybindings.invalid', { keys: invalid.join(', ') }),
+          t('dialog.ok'),
+        );
+    } catch (error) {
+      await dialogs.alert('MarkType', t('keybindings.error', { message: String(error) }), t('dialog.ok'));
+    }
+  }
+
+  // Startup: open what the OS passed (or reopen the last folder), then offer to recover unsaved work.
   $effect(() => {
     const last = prefs.get<string | null>('lastFolder', null);
+    let off: (() => void) | undefined;
+    let stopped = false;
     void (async () => {
-      if (last && folders) await openFolder(last).catch(() => workspace.closeFolder());
+      const launch = platform.launch;
+      if (launch) {
+        const unsubscribe = await launch.onOpen((paths) => void openLaunchPaths(paths));
+        if (stopped) unsubscribe();
+        else off = unsubscribe;
+      }
+      const initial = (await launch?.initial().catch(() => [])) ?? [];
+      if (initial.length) await openLaunchPaths(initial);
+      else if (last && folders && settings.restoreFolder)
+        await openFolder(last).catch(() => workspace.closeFolder());
+      const error = platform.config?.settingsError;
+      if (error)
+        await dialogs.alert('MarkType', t('settings.invalidFile', { message: error }), t('dialog.ok'));
+      await loadKeybindings();
       await workspace.recoverDrafts();
     })();
+    return () => {
+      stopped = true;
+      off?.();
+    };
   });
 
   $effect(() => {
@@ -364,4 +468,13 @@
 
 <QuickOpen bind:open={quickOpen} {workspace} {folders} {t} />
 <ContextMenu {menu} />
+<SettingsDialog
+  bind:open={settingsOpen}
+  {platform}
+  {workspace}
+  {settings}
+  {themes}
+  {t}
+  onclose={() => active?.focus()}
+/>
 <DialogHost {dialogs} />

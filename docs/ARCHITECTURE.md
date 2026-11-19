@@ -133,6 +133,11 @@ export interface Platform {
 
   // varie
   searchFolder(folder: FolderRef, query: SearchQuery, onHit: (hit: SearchHit) => void): Cancelable;
+  // (M6) prefs = settings.json in memoria (`memoryPrefs`, scritture a lotti solo delle chiavi cambiate);
+  // config: { settingsPath; settingsError; keybindings(); openFile('settings' | 'keybindings') } | null;
+  // launch: { initial(); onOpen(cb) } | null  (riga di comando, doppio clic, seconda istanza);
+  // export: { pickTarget(nome, filtro); writeText(path, testo); open(path) | null; pandoc: { version; run } | null }
+  // (HTML e PDF li costruisce `packages/app/src/export.ts` con `renderHtml` dell'editor; PDF = stampa).
   loadSettings(): Promise<Settings>; saveSettings(s: Settings): Promise<void>;
   listThemes(): Promise<ThemeInfo[]>; readTheme(id: string): Promise<string>; onThemeChanged(cb): Unsubscribe;
   saveDraft(id: string, text: string): Promise<void>; listDrafts(): Promise<Draft[]>;

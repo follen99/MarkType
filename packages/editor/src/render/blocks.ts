@@ -36,7 +36,10 @@ async function renderPreview(kind: PreviewKind, source: string, target: HTMLElem
       // Relative images in HTML blocks are relative to the document, like markdown images.
       for (const img of target.querySelectorAll('img')) {
         const src = img.getAttribute('src');
-        if (src && !hasScheme(src)) img.src = env.resolveUrl(src);
+        if (src && !hasScheme(src)) {
+          img.dataset.src = src;
+          img.src = env.resolveUrl(src);
+        }
       }
       // Links in a preview must not navigate the app window.
       for (const a of target.querySelectorAll('a')) a.removeAttribute('href');

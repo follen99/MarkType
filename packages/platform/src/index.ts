@@ -178,10 +178,120 @@ export interface FileDrop {
   y: number;
 }
 
-/** Small persistent key/value store for UI state (until settings.json lands in M6). */
+/**
+ * Persistent key/value settings. Desktop: `settings.json` in the user config folder (docs/SPEC.md §16);
+ * web: localStorage. Reads are synchronous (loaded at startup); setting `null` removes the key.
+ */
 export interface PrefsApi {
   get<T>(key: string, fallback: T): T;
   set(key: string, value: unknown): void;
+}
+
+/** The hand-editable configuration files (desktop only). */
+export interface ConfigApi {
+  /** Full path of `settings.json`, for display. */
+  readonly settingsPath: string;
+  /** Set when `settings.json` is not valid JSON: the app runs with defaults and never overwrites it. */
+  readonly settingsError: string | null;
+  /** Shortcut overrides from `keybindings.json` (`{}` if missing); rejects with a message if invalid. */
+  keybindings(): Promise<Record<string, unknown>>;
+  /** Opens the file in the system editor, creating it if needed. */
+  openFile(name: 'settings' | 'keybindings'): Promise<void>;
+}
+
+/** A file or folder the OS asks the app to open. */
+export interface LaunchPath {
+  path: string;
+  isDir: boolean;
+}
+
+/** Command line, double click on a file, "Open with", second launch (desktop only). */
+export interface LaunchApi {
+  /** Paths the app was started with. Subscribe with `onOpen` first, then call this once. */
+  initial(): Promise<LaunchPath[]>;
+  /** Paths sent while the app runs (another launch hands them to this window). */
+  onOpen(cb: (paths: LaunchPath[]) => void): Promise<Unsubscribe>;
+}
+
+export interface ExportFilter {
+  name: string;
+  extensions: string[];
+}
+
+export type PandocFormat = 'docx' | 'odt' | 'rtf' | 'epub' | 'latex';
+
+export interface PandocJob {
+  /** Program to run; empty = `pandoc` from PATH. */
+  pandoc: string;
+  markdown: string;
+  format: PandocFormat;
+  output: string;
+  /** Folder relative image paths are resolved from (the document's). */
+  resourceDir: string | null;
+}
+
+/** Thrown by `PandocApi.run` when Pandoc is not installed (or not at the configured path). */
+export const PANDOC_NOT_FOUND = 'pandoc-not-found';
+
+export interface PandocApi {
+  /** `pandoc 3.6.2`, or null when it cannot be run. */
+  version(pandocPath: string): Promise<string | null>;
+  run(job: PandocJob): Promise<void>;
+}
+
+export interface ExportApi {
+  /** Asks where to export; resolves to the target (a path on desktop, a file name on the web) or null. */
+  pickTarget(suggestedName: string, filter: ExportFilter): Promise<string | null>;
+  writeText(target: string, text: string): Promise<void>;
+  /** Opens an exported file with its default program; null where that is not possible (web). */
+  open: ((path: string) => Promise<void>) | null;
+  /** null where external programs cannot run (web). */
+  pandoc: PandocApi | null;
+}
+
+/**
+ * Prefs kept in memory and persisted by `persist`, which receives only the changed keys (`null` = removed),
+ * batched for `delay` ms. Used for `settings.json` on desktop.
+ */
+export function memoryPrefs(
+  initial: Record<string, unknown>,
+  persist: ((patch: Record<string, unknown>) => Promise<void>) | null,
+  delay = 150,
+): PrefsApi & { flush(): Promise<void> } {
+  const values = new Map(Object.entries(initial));
+  // JSON, not structuredClone: values may be Svelte state proxies, and they end up in a JSON file anyway.
+  const jsonCopy = (value: unknown): unknown => JSON.parse(JSON.stringify(value)) as unknown;
+  let patch: Record<string, unknown> = {};
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  const flush = async () => {
+    clearTimeout(timer);
+    timer = undefined;
+    const pending = patch;
+    patch = {};
+    if (persist && Object.keys(pending).length) {
+      try {
+        await persist(pending);
+      } catch (error) {
+        console.warn('Settings not saved:', error);
+      }
+    }
+  };
+  return {
+    get<T>(key: string, fallback: T): T {
+      return values.has(key) ? (jsonCopy(values.get(key)) as T) : fallback;
+    },
+    set(key, value) {
+      // A copy: callers may keep mutating the object they passed.
+      const copy = value === undefined || value === null ? null : jsonCopy(value);
+      if (copy === null) values.delete(key);
+      else values.set(key, copy);
+      patch[key] = copy;
+      if (!persist) return;
+      clearTimeout(timer);
+      timer = setTimeout(() => void flush(), delay);
+    },
+    flush,
+  };
 }
 
 export interface Platform {
@@ -199,6 +309,11 @@ export interface Platform {
   /** null where images cannot be written next to the document (web: pasted images stay in memory). */
   readonly images: ImagesApi | null;
   readonly prefs: PrefsApi;
+  /** null where there are no configuration files (web). */
+  readonly config: ConfigApi | null;
+  /** null where the OS cannot hand files to the app (web). */
+  readonly launch: LaunchApi | null;
+  readonly export: ExportApi;
   /** URL the webview can load for an image `src` written in the document `doc`. */
   resolveAssetUrl(doc: FileRef | null, src: string): string;
   /** Local path a relative link in `doc` points to, or null (web, or not a local link). */
@@ -219,7 +334,8 @@ export function localPrefs(prefix: string): PrefsApi {
     },
     set(key, value) {
       try {
-        localStorage.setItem(prefix + key, JSON.stringify(value));
+        if (value === null || value === undefined) localStorage.removeItem(prefix + key);
+        else localStorage.setItem(prefix + key, JSON.stringify(value));
       } catch {
         // storage unavailable: preferences are just not remembered
       }

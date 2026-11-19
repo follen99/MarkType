@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.5.0` (alpha 5, immagini e appunti).
+> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.6.0` (beta 1, export e integrazione con il sistema).
 
 ## 1. Dove siamo
 
@@ -15,8 +15,8 @@
 | M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | **no, in attesa di test** |
 | M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
 | M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | **no, in attesa di test** |
-| M6 Export e integrazione OS → beta | ⏭️ **prossima** | | |
-| M7 Rifinitura → v1.0 | da fare | | |
+| M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | **no, in attesa di test** |
+| M7 Rifinitura → v1.0 | ⏭️ **prossima** | | |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -26,7 +26,7 @@ Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti co
 release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o che finisca la finestra di 5 ore.
 
 ### Ultima build (Windows 11, release)
-- Installer NSIS: **4,54 MB** (target < 15 MB).
+- Installer NSIS: **4,58 MB** (target < 15 MB).
 - RAM a vuoto (M0): ~206 MB privati, quasi tutti WebView2 → **sopra il target di 150 MB**, da ottimizzare in M7.
 - Bundle JS iniziale ~330 KB gzip; Mermaid, KaTeX, linguaggi di highlight, DOMPurify e gemoji sono chunk lazy.
 
@@ -63,18 +63,41 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
   ha un file d'origine e va comunque in `./assets`.
 - Web: `platform.images = null`, le immagini incollate sono URL `blob:` validi solo nella sessione.
 
-## 2. Prossimo passo: M6 Export e integrazione con l'OS → beta
+### Come sono fatti impostazioni, avvio ed export (M6)
+- **`settings.json`**: Rust `commands/settings.rs` (`load_settings`, `update_settings` = legge il file, applica solo
+  le chiavi cambiate, scrive atomico; `null` toglie la chiave; un file non valido non viene mai riscritto).
+  Il frontend tiene i valori in memoria (`memoryPrefs` in `packages/platform`, scritture a lotti ogni 150 ms e
+  `flush` alla chiusura). Al primo avvio `apps/desktop/src/platform/tauri.ts` copia le vecchie chiavi
+  `marktype.*` di localStorage e mette il flag `marktype.migratedToSettingsJson`. Le chiavi sono quelle di prima
+  (`theme`, `images`, `sidebar.*`, `autosave`, `mode`, `lastFolder`, `recentFiles`) più `language`,
+  `restoreFolder`, `editor` (`fontSize`, `pageWidth`), `export` (`embedImages`, `pandocPath`):
+  `packages/app/src/settings.svelte.ts` (`AppSettings`). Le modifiche a mano valgono al riavvio.
+- **`keybindings.json`**: letto all'avvio (`read_keybindings`), `parseUserKeybindings`/`effectiveKeybindings` in
+  `registry.ts`; nomi dei comandi in [SHORTCUTS.md](SHORTCUTS.md).
+- `MARKTYPE_CONFIG_DIR` sostituisce la cartella di configurazione (lo usa lo smoke test).
+- **Avvio**: Rust `commands/launch.rs` (`take_launch_paths` per gli argomenti iniziali, evento `open-paths` per
+  la seconda istanza via `tauri-plugin-single-instance` e per `RunEvent::Opened` su macOS). App.svelte apre i
+  file in schede e le cartelle nella sidebar; con argomenti non riapre l'ultima cartella.
+- **Installer**: `bundle.fileAssociations` (md, markdown, mdown, mkd) e `windows/hooks.nsh` (menu contestuale
+  "Apri con MarkType" su cartelle, sfondo cartella, file .md/.markdown, in HKCU; etichetta italiana se Windows è
+  in italiano). L'MSI ha l'associazione ma non il menu contestuale.
+- **Export**: `packages/editor/src/export.ts` `renderHtml` crea una vista ProseMirror non modificabile fuori
+  schermo, aspetta che Mermaid/KaTeX/evidenziazione abbiano finito (MutationObserver), clona `#write` e toglie
+  l'interfaccia di modifica. `packages/app/src/export.ts` (chunk lazy) compone la pagina: `base.css` +
+  `editor.css` (`?raw`) + CSS del tema letto con `fetch` (la CSP ora permette `connect-src 'self' asset:`),
+  `url()` relativi dei temi incorporati come data URI, KaTeX da CDN jsDelivr. PDF = la stessa pagina in un
+  iframe nascosto + `print()` (dialog di sistema, "Salva come PDF"). Pandoc: Rust `commands/export.rs`
+  (markdown su stdin, `--resource-path` = cartella del documento, nessuna finestra console). `open_export`
+  apre solo file con estensioni di export.
 
-Obiettivo: SPEC §13, §14, §16 (vedi [ROADMAP.md](ROADMAP.md), sezione M6).
+## 2. Prossimo passo: M7 Rifinitura → v1.0
 
-1. **`settings.json`** in `user_config_dir()` (vedi M4) con migrazione delle `prefs` di localStorage (sidebar,
-   autosave, modalità, ultima cartella, recenti, `images`, tema); pannello impostazioni (anche per le opzioni
-   immagini che oggi sono nel menu Formato) e `keybindings.json`.
-2. **Istanza singola + CLI + associazione `.md`**: `tauri-plugin-single-instance`, argomenti della riga di comando,
-   associazione file nell'installer NSIS/MSI (`bundle.fileAssociations`), evento verso il frontend per aprire.
-3. **Export HTML** autonomo (CSS del tema incorporato, immagini relative o incorporate), **PDF** (stampa della
-   WebView: `print` su Windows/macOS), **Pandoc** se installato (DOCX, ODT, EPUB, LaTeX).
-4. Smoke desktop: estendere con apertura da riga di comando.
+Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
+1. Aspettare il feedback dell'utente su M3–M6 e correggere i problemi trovati.
+2. Prestazioni: RAM di WebView2, CodeMirror caricato solo in modalità sorgente, avvio < 1 s, documenti da 10k righe.
+3. PDF diretto senza dialog (WebView2 `PrintToPdf` via `webview2-com`, `WKWebView.createPDF`), header/footer.
+4. Accessibilità di base, menu nativo su macOS, README con screenshot, release `v1.0.0`.
+
 ## 3. Mappa del codice
 
 ```
@@ -82,6 +105,8 @@ apps/desktop/src/platform/tauri.ts   Platform su Tauri (invoke dei comandi Rust,
 apps/desktop/src-tauri/src/commands/ app.rs · fs.rs (lettura UTF-8, scrittura atomica, stamp mtime+size, conflitti)
                                      folder.rs (lista cartelle, crea/rinomina/sposta/cestino) · search.rs (ricerca)
                                      drafts.rs (bozze per il recupero crash, in app_data_dir/drafts)
+                                     themes.rs · images.rs · settings.rs · launch.rs (CLI, istanza singola) · export.rs (Pandoc)
+apps/desktop/src-tauri/windows/hooks.nsh  menu contestuale "Apri con MarkType" (installer NSIS)
 apps/desktop/src-tauri/tauri.conf.json  finestra senza cornice (macOS: tauri.macos.conf.json con overlay), CSP, asset protocol
 apps/web/src/platform/web.ts         Platform nel browser (file singolo, File System Access, bozze in localStorage)
 packages/platform/src/index.ts       interfaccia Platform (UNICO confine con l'OS) + paths.ts
@@ -94,7 +119,9 @@ packages/editor/src/
   source/view.ts                     CodeMirror 6 + comandi in modalità sorgente
   find.ts                            cerca/sostituisci per entrambi i motori
 packages/app/src/
-  App.svelte                         composizione, comandi (run), scorciatoie, avvio (ultima cartella, recupero bozze)
+  App.svelte                         composizione, comandi (run), scorciatoie, avvio (file da CLI, ultima cartella, bozze)
+  settings.svelte.ts · export.ts     impostazioni dell'app (lingua, layout, export) · export HTML/PDF/Pandoc (lazy)
+  chrome/SettingsDialog.svelte       pannello impostazioni (Ctrl+,)
   workspace.svelte.ts                schede, cartella, recenti, modalità, autosave
   document.svelte.ts                 un documento: load/save, BOM/CRLF, conflitti, bozze, autosave
   commands/registry.ts · keys.ts     comandi, scorciatoie Typora, menu; matching scorciatoie per layout
@@ -120,8 +147,8 @@ samples/showcase.md                  documento con tutte le funzioni (test: roun
 - **Lazy loading** per ogni libreria pesante (`render/lazy.ts`, `@codemirror/language-data`).
 - **Scrittura sicura**: scrittura atomica (tmp + rename) e controllo dello stamp prima di scrivere; mai sovrascrivere
   file senza conferma (vale anche per le immagini in M5).
-- Preferenze UI (sidebar, autosave, modalità, ultima cartella, recenti) oggi in `platform.prefs` (localStorage):
-  in M6 migrano in `settings.json`.
+- Preferenze in `platform.prefs`: `settings.json` su desktop, localStorage sul web. Lettura sincrona, `set(chiave,
+  null)` toglie la chiave.
 
 ## 5. Ambiente di sviluppo e trappole note (Windows)
 
@@ -147,7 +174,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 pnpm exec prettier --write . ; cargo fmt --all
 pnpm build:web                               # build web (apps/web/dist)
 pnpm --filter @marktype/desktop tauri build --bundles nsis   # installer in target/release/bundle/nsis
-node scripts/smoke-desktop.mjs               # dopo la build: test end-to-end dell'app vera (temi utente)
+node scripts/smoke-desktop.mjs               # dopo la build: test end-to-end dell'app vera (temi, immagini, settings, CLI)
 ```
 
 ### Rilasci (GitHub Releases + GitHub Pages)
@@ -188,8 +215,9 @@ Le funzioni su cartelle e file nativi si provano solo nell'app desktop (le prova
 | Albero file aggiornato solo al focus della finestra (nessun watcher) | `notify` è ora una dipendenza (M4): riusarlo |
 | Note a piè di pagina: niente popup/modifica visuale | dopo v1.0 |
 | Apice/pedice `^x^` / `~x~` (conflitto con il barrato `~x~` di GFM) | solo come opzione, dopo v1.0 |
-| Scorciatoie personalizzabili (`keybindings.json`), pannello impostazioni | M6 |
-| Apertura da riga di comando / doppio clic / menu contestuale / istanza singola | M6 |
+| PDF senza dialog di stampa; header/footer personalizzati | M7 |
+| Export su macOS: `print()` in WKWebView non verificato | da provare su un Mac |
+| Modifiche manuali a `settings.json` applicate solo al riavvio (nessun watcher) | dopo v1.0 |
 | Installer non firmati | dopo v1.0 (SPEC §17) |
 | Azioni GitHub su Node 20 deprecato (avvisi in CI) | aggiornare checkout/setup-node/pnpm/pages a versioni Node 24 |
 | Web: immagini relative non caricabili; zip per immagini incollate | Fase 2 |

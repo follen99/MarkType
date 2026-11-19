@@ -90,16 +90,16 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - [x] Incolla HTML → Markdown
 - Da testare: screenshot incollati, immagini con lo stesso nome, documento nuovo non salvato.
 
-## M6: Export e integrazione con l'OS → **beta**
-- [ ] Export HTML autonomo
-- [ ] Export PDF (nativo su Windows/macOS, fallback con dialog di stampa su Linux)
-- [ ] Export con Pandoc (DOCX, ODT, EPUB, LaTeX, …)
-- [ ] Istanza singola
-- [ ] CLI `marktype <file|cartella>`
-- [ ] Associazione file `.md` (installer)
-- [ ] Menu contestuale "Apri con MarkType" (Windows) / integrazione "Apri con" (macOS, Linux)
-- [ ] Pannello impostazioni + `settings.json` + `keybindings.json`
-- [ ] i18n italiano + inglese completo
+## M6: Export e integrazione con l'OS → **beta** (`v0.6.0`)
+- [x] Export HTML autonomo (CSS del tema e font incorporati, immagini relative o incorporate)
+- [x] Export PDF con il dialog di stampa ("Salva come PDF"); PDF diretto senza dialog rimandato a M7
+- [x] Export con Pandoc (DOCX, ODT, RTF, EPUB, LaTeX), percorso configurabile
+- [x] Istanza singola
+- [x] CLI `marktype <file|cartella>`
+- [x] Associazione file `.md` (installer)
+- [x] Menu contestuale "Apri con MarkType" (Windows, installer NSIS) / file aperti dal Finder (macOS)
+- [x] Pannello impostazioni + `settings.json` + `keybindings.json`
+- [x] i18n italiano + inglese completo
 - Da testare: installazione pulita su Windows, macOS e Linux; export; doppio clic su un `.md`.
 
 ## M7: Rifinitura → **v1.0**
@@ -107,6 +107,8 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - [ ] Ridurre la RAM di WebView2 (oggi ~206 MB a vuoto, vedi le misure di M0)
 - [ ] Caricare CodeMirror solo al primo passaggio in modalità sorgente (bundle iniziale oggi 326 KB gzip)
 - [ ] Menu nativo nella barra di sistema su macOS
+- [ ] PDF diretto senza dialog di stampa (WebView2 `PrintToPdf`, `WKWebView.createPDF`), header/footer
+- [ ] Menu contestuale "Apri con MarkType" anche nell'installer MSI
 - [ ] Accessibilità di base (navigazione da tastiera nei menu, contrasto)
 - [ ] README con screenshot, guida all'installazione per OS non firmati
 - [ ] CHANGELOG e release `v1.0.0`

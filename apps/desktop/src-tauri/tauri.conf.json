@@ -25,7 +25,7 @@
       }
     ],
     "security": {
-      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' asset: http://asset.localhost https:; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data: asset: http://asset.localhost https:; connect-src ipc: http://ipc.localhost",
+      "csp": "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline' asset: http://asset.localhost https:; img-src 'self' asset: http://asset.localhost data: blob: https:; font-src 'self' data: asset: http://asset.localhost https:; connect-src ipc: http://ipc.localhost 'self' asset: http://asset.localhost",
       "assetProtocol": {
         "enable": true,
         "scope": []
@@ -48,9 +48,21 @@
       "icons/icon.icns",
       "icons/icon.ico"
     ],
+    "fileAssociations": [
+      {
+        "ext": ["md", "markdown", "mdown", "mkd"],
+        "name": "Markdown",
+        "description": "Markdown document",
+        "role": "Editor",
+        "rank": "Alternate",
+        "mimeType": "text/markdown",
+        "contentTypes": ["net.daringfireball.markdown"]
+      }
+    ],
     "windows": {
       "nsis": {
-        "installMode": "currentUser"
+        "installMode": "currentUser",
+        "installerHooks": "./windows/hooks.nsh"
       }
     }
   }

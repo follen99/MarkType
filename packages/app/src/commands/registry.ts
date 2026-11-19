@@ -1,4 +1,4 @@
-import type { EditorCommandId } from '@marktype/editor';
+import { isEditorCommand, type EditorCommandId } from '@marktype/editor';
 import type { MessageKey } from '@marktype/i18n';
 import { normalizeShortcut } from './keys.ts';
 
@@ -10,6 +10,15 @@ export const APP_COMMANDS = [
   'save',
   'saveAs',
   'toggleAutosave',
+  'exportHtml',
+  'exportPdf',
+  'exportDocx',
+  'exportOdt',
+  'exportRtf',
+  'exportEpub',
+  'exportLatex',
+  'preferences',
+  'openKeybindings',
   'closeTab',
   'reopenTab',
   'nextTab',
@@ -47,6 +56,7 @@ export const DEFAULT_KEYBINDINGS: Partial<Record<CommandId, string[]>> = {
   quickOpen: ['Mod+P'],
   save: ['Mod+S'],
   saveAs: ['Mod+Shift+S'],
+  preferences: ['Mod+,'],
   closeTab: ['Mod+W'],
   reopenTab: ['Mod+Shift+T'],
   nextTab: ['Mod+Tab', 'Ctrl+Tab', 'Mod+PageDown'],
@@ -126,6 +136,16 @@ export const MENUS: MenuDef[] = [
       'save',
       'saveAs',
       'toggleAutosave',
+      '-',
+      'exportHtml',
+      'exportPdf',
+      'exportDocx',
+      'exportOdt',
+      'exportRtf',
+      'exportEpub',
+      'exportLatex',
+      '-',
+      'preferences',
       '-',
       'closeTab',
       'reopenTab',
@@ -249,4 +269,40 @@ export function buildShortcutMap(...layers: Partial<Record<CommandId, string[]>>
     }
   }
   return map;
+}
+
+export function isCommandId(id: string): id is CommandId {
+  return (APP_COMMANDS as readonly string[]).includes(id) || isEditorCommand(id);
+}
+
+export interface UserKeybindings {
+  bindings: Partial<Record<CommandId, string[]>>;
+  /** Keys that are not command names, or values that are not shortcuts. */
+  invalid: string[];
+}
+
+/**
+ * Parses keybindings.json: `{ "bold": "Mod+Shift+B" }`, a list of shortcuts, or `null` to remove the
+ * default. Keys starting with `//` are comments.
+ */
+export function parseUserKeybindings(raw: Record<string, unknown>): UserKeybindings {
+  const bindings: Partial<Record<CommandId, string[]>> = {};
+  const invalid: string[] = [];
+  for (const [key, value] of Object.entries(raw)) {
+    if (key.startsWith('//')) continue;
+    const list = value === null ? [] : typeof value === 'string' ? [value] : value;
+    if (!isCommandId(key) || !Array.isArray(list) || !list.every((v) => typeof v === 'string' && v.trim())) {
+      invalid.push(key);
+      continue;
+    }
+    bindings[key] = (list as string[]).map((v) => v.trim());
+  }
+  return { bindings, invalid };
+}
+
+/** Defaults with the user's overrides applied: a command listed by the user loses its default shortcuts. */
+export function effectiveKeybindings(
+  user: Partial<Record<CommandId, string[]>>,
+): Partial<Record<CommandId, string[]>> {
+  return { ...DEFAULT_KEYBINDINGS, ...user };
 }

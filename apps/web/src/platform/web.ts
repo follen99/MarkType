@@ -48,8 +48,8 @@ function pickWithInput(): Promise<File | null> {
   });
 }
 
-function download(name: string, text: string): void {
-  const url = URL.createObjectURL(new Blob([text], { type: 'text/markdown;charset=utf-8' }));
+function download(name: string, text: string, type = 'text/markdown'): void {
+  const url = URL.createObjectURL(new Blob([text], { type: `${type};charset=utf-8` }));
   const a = document.createElement('a');
   a.href = url;
   a.download = name;
@@ -174,6 +174,16 @@ export function createWebPlatform(): Platform {
     // Pasted and dropped images stay in memory (blob URLs) until phase 2 packages them in a .zip.
     images: null,
     prefs,
+    config: null,
+    launch: null,
+    export: {
+      // Browsers download the file; the name comes from the app.
+      pickTarget: async (suggestedName) => suggestedName,
+      writeText: async (target, text) =>
+        download(target, text, target.endsWith('.html') ? 'text/html' : 'text/plain'),
+      open: null,
+      pandoc: null,
+    },
     // Relative images cannot be read from a single opened file; they load only if they are URLs.
     resolveAssetUrl: (_doc, src) => src,
     resolveLocalLink: () => null,
