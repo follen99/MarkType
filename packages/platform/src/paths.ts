@@ -29,7 +29,7 @@ export function resolvePath(baseDir: string, relative: string): string {
 /** Decodes `%20`-style escapes in markdown image paths; leaves malformed input untouched. */
 export function decodePathComponent(src: string): string {
   try {
-    return decodeURI(src);
+    return decodeURIComponent(src);
   } catch {
     return src;
   }

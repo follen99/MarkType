@@ -3,6 +3,7 @@ import type { Translate } from '@marktype/i18n';
 import { isInside, type Draft, type FileRef, type Platform } from '@marktype/platform';
 import type { Dialogs } from './dialogs.svelte.ts';
 import { DocumentController, errorMessage } from './document.svelte.ts';
+import { DEFAULT_IMAGE_SETTINGS, loadImageSettings, type ImageSettings } from './images.ts';
 
 const MAX_RECENT = 20;
 const MAX_CLOSED = 20;
@@ -17,6 +18,7 @@ export class Workspace {
   folder = $state<string | null>(null);
   autosave = $state(false);
   recentFiles = $state<string[]>([]);
+  imageSettings = $state<ImageSettings>(DEFAULT_IMAGE_SETTINGS);
 
   private main: HTMLElement | null = null;
   private closed: string[] = [];
@@ -30,6 +32,7 @@ export class Workspace {
     this.autosave = platform.prefs.get('autosave', false);
     this.recentFiles = platform.prefs.get<string[]>('recentFiles', []);
     this.lastMode = platform.prefs.get<EditorMode>('mode', 'wysiwyg');
+    this.imageSettings = loadImageSettings(platform.prefs);
   }
 
   get active(): DocumentController | undefined {
@@ -50,6 +53,7 @@ export class Workspace {
         t: this.t,
         autosave: () => this.autosave,
         openLocal: (path) => void this.openPath(path),
+        imageSettings: () => this.imageSettings,
       },
       this.lastMode,
     );
@@ -184,6 +188,11 @@ export class Workspace {
     this.autosave = !this.autosave;
     this.platform.prefs.set('autosave', this.autosave);
     if (this.autosave) for (const doc of this.docs) doc.flushAutosave();
+  }
+
+  setImageSettings(patch: Partial<ImageSettings>): void {
+    this.imageSettings = { ...this.imageSettings, ...patch };
+    this.platform.prefs.set('images', $state.snapshot(this.imageSettings));
   }
 
   flushAutosave(): void {

@@ -16,6 +16,8 @@ import { markdown, markdownLanguage } from '@codemirror/lang-markdown';
 import { tagHighlighter, tags } from '@lezer/highlight';
 import { search, highlightSelectionMatches } from '@codemirror/search';
 import type { EditorCommandId } from '../commands.ts';
+import { imageFiles, saveImages, type ImageRef, type SaveImage } from '../wysiwyg/clipboard.ts';
+import { htmlHasText } from '../markdown/html.ts';
 
 /** Token classes named like CodeMirror 5's markdown mode, so Typora themes style source mode too. */
 const typoraHighlighter = tagHighlighter([
@@ -37,6 +39,49 @@ const typoraHighlighter = tagHighlighter([
 export interface SourceViewOptions {
   onUpdate?(update: ViewUpdate): void;
   prompt(kind: 'link' | 'image', initial: string): Promise<string | null>;
+  saveImage?: SaveImage;
+}
+
+const escapeAlt = (alt: string) => alt.replace(/([[\]\\])/g, '\\$1');
+
+/** Markdown for images, inserted as text in source mode. */
+export function imageMarkdown(images: ImageRef[]): string {
+  return images.map((image) => `![${escapeAlt(image.alt)}](${image.src})`).join(' ');
+}
+
+/** Inserts images at `pos` or, without it, replacing the selection. */
+export function insertImageText(view: EditorView, images: ImageRef[], pos?: number): void {
+  if (!images.length) return;
+  const text = imageMarkdown(images);
+  const range = pos === undefined ? view.state.selection.main : { from: pos, to: pos };
+  view.dispatch({
+    changes: { from: range.from, to: range.to, insert: text },
+    selection: { anchor: range.from + text.length },
+    scrollIntoView: true,
+  });
+  view.focus();
+}
+
+/** Pasted / dropped image files become `![](src)`; text (and HTML) pastes stay plain text. */
+function imageHandlers(options: SourceViewOptions) {
+  return EditorView.domEventHandlers({
+    paste(event, view) {
+      const data = event.clipboardData;
+      const files = options.saveImage ? imageFiles(data) : [];
+      if (!files.length || htmlHasText(data?.getData('text/html') ?? '')) return false;
+      event.preventDefault();
+      void saveImages(options.saveImage!, files).then((refs) => insertImageText(view, refs));
+      return true;
+    },
+    drop(event, view) {
+      const files = options.saveImage ? imageFiles(event.dataTransfer) : [];
+      if (!files.length) return false;
+      event.preventDefault();
+      const pos = view.posAtCoords({ x: event.clientX, y: event.clientY }) ?? undefined;
+      void saveImages(options.saveImage!, files).then((refs) => insertImageText(view, refs, pos));
+      return true;
+    },
+  });
 }
 
 export function createSourceView(parent: HTMLElement, text: string, options: SourceViewOptions): EditorView {
@@ -57,6 +102,7 @@ export function createSourceView(parent: HTMLElement, text: string, options: Sou
         keymap.of([...defaultKeymap, ...historyKeymap, indentWithTab]),
         EditorView.contentAttributes.of({ spellcheck: 'false' }),
         EditorView.updateListener.of((update) => options.onUpdate?.(update)),
+        imageHandlers(options),
       ],
     }),
   });

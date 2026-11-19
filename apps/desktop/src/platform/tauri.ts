@@ -34,6 +34,10 @@ type RustWriteResult = { status: 'ok'; stamp: FileStamp } | { status: 'conflict'
 
 const KNOWN_OS: readonly OsName[] = ['windows', 'macos', 'linux', 'android', 'ios'];
 const MARKDOWN_FILTER = { name: 'Markdown', extensions: ['md', 'markdown', 'mdown', 'mkd', 'mdx', 'txt'] };
+const IMAGE_FILTER = {
+  name: 'Images',
+  extensions: ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp', 'avif', 'ico', 'tif', 'tiff'],
+};
 
 const fileRef = (path: string): FileRef => ({ id: path, name: basename(path) });
 
@@ -59,6 +63,7 @@ export async function createTauriPlatform(): Promise<Platform> {
   const os = (KNOWN_OS as readonly string[]).includes(info.os) ? (info.os as OsName) : 'unknown';
   const win = getCurrentWindow();
   const webview = getCurrentWebview();
+  let pendingRoot: Promise<string> | undefined;
 
   return {
     kind: 'desktop',
@@ -77,6 +82,13 @@ export async function createTauriPlatform(): Promise<Platform> {
       onCloseRequested: (guard) =>
         win.onCloseRequested(async (event) => {
           if (guard.hasUnsavedChanges() && !(await guard.confirmClose())) event.preventDefault();
+        }),
+      // Tauri takes file drops from the OS (with their paths) instead of the page; positions are physical.
+      onFileDrop: (cb) =>
+        webview.onDragDropEvent(({ payload }) => {
+          if (payload.type !== 'drop' || !payload.paths.length) return;
+          const ratio = window.devicePixelRatio || 1;
+          cb({ paths: payload.paths, x: payload.position.x / ratio, y: payload.position.y / ratio });
         }),
     },
     files: {
@@ -136,6 +148,22 @@ export async function createTauriPlatform(): Promise<Platform> {
         return unlisten;
       },
       openFolder: () => invoke('open_themes_folder'),
+    },
+    images: {
+      save(dir, name, bytes) {
+        const headers = { 'x-dir': encodeURIComponent(dir), 'x-name': encodeURIComponent(name) };
+        return invoke<string>('save_image', bytes, { headers });
+      },
+      move: (path, dir) => invoke<string>('move_image', { path, dir }),
+      async read(path) {
+        return new Uint8Array(await invoke<ArrayBuffer>('read_image_file', { path }));
+      },
+      async pick() {
+        const paths = await open({ multiple: true, directory: false, filters: [IMAGE_FILTER] });
+        return paths ?? [];
+      },
+      pendingRoot: () => (pendingRoot ??= invoke<string>('pending_images_root')),
+      discardPending: (docId) => invoke('discard_pending_images', { id: docId }),
     },
     prefs: localPrefs('marktype.'),
     resolveAssetUrl(doc, src) {

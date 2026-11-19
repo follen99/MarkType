@@ -1,12 +1,15 @@
 // Smoke test of the built desktop app (Windows): launches target/release/marktype.exe with the WebView2
 // remote-debugging port open and checks things only the real app can do. Usage, after a release build:
 //   node scripts/smoke-desktop.mjs
-// Today it covers user themes (M4): a theme in %APPDATA%\MarkType\themes is listed and applied, its relative
+// It covers user themes (M4): a theme in %APPDATA%\MarkType\themes is listed and applied, its relative
 // url() assets load through the asset protocol, and editing it live-reloads. The user's saved theme choice is
 // restored and the test files are removed at the end.
+// And images (M5): saving never overwrites an existing file (`-1`, `-2` suffixes), and an image pasted in an
+// untitled document goes to the pending folder and is displayed through the asset protocol.
 
 import { spawn } from 'node:child_process';
-import { mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
 import { join, resolve } from 'node:path';
 
 const PORT = 9333;
@@ -15,6 +18,10 @@ const exe = join(root, 'target', 'release', 'marktype.exe');
 const themesDir = join(process.env.APPDATA ?? '', 'MarkType', 'themes');
 const themeCss = join(themesDir, 'mt-smoke.css');
 const assetDir = join(themesDir, 'mt-smoke');
+const imageDir = mkdtempSync(join(tmpdir(), 'mt smoke images '));
+const PNG =
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==';
+let pendingId = null;
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const results = [];
@@ -123,6 +130,43 @@ try {
   await sleep(2000);
   const bg = await cdp.eval(`getComputedStyle(document.body).backgroundColor`);
   check('editing the theme live-reloads it', bg === 'rgb(64, 80, 96)', bg);
+
+  // M5 images: saving never overwrites, suffixes -1, -2…
+  writeFileSync(join(imageDir, 'shot.png'), 'original');
+  const saves = await cdp.eval(`(async () => {
+    const invoke = window.__TAURI_INTERNALS__.invoke;
+    const headers = { 'x-dir': encodeURIComponent(${JSON.stringify(imageDir)}), 'x-name': encodeURIComponent('shot.png') };
+    const a = await invoke('save_image', new TextEncoder().encode('one'), { headers });
+    const b = await invoke('save_image', new TextEncoder().encode('two'), { headers });
+    return [a, b];
+  })()`);
+  const names = (saves ?? []).map((p) => p.split(/[\\/]/).pop());
+  check('image save picks free names', names.join() === 'shot-1.png,shot-2.png', names.join());
+  check(
+    'existing image is never overwritten',
+    readFileSync(join(imageDir, 'shot.png'), 'utf8') === 'original' &&
+      readFileSync(join(imageDir, 'shot-2.png'), 'utf8') === 'two',
+  );
+
+  // Pasting an image in the untitled document stores it in the pending folder and shows it.
+  const pasted = await cdp.eval(`(async () => {
+    const write = document.querySelector('#write');
+    write.focus();
+    const png = Uint8Array.from(atob('${PNG}'), (c) => c.charCodeAt(0));
+    const data = new DataTransfer();
+    data.items.add(new File([png], 'image.png', { type: 'image/png' }));
+    write.dispatchEvent(new ClipboardEvent('paste', { clipboardData: data, bubbles: true, cancelable: true }));
+    for (let i = 0; i < 40 && !write.querySelector('.md-image.md-img-loaded, .md-image.md-img-error'); i++)
+      await new Promise((r) => setTimeout(r, 100));
+    const img = write.querySelector('.md-image img');
+    const result = { src: img?.dataset.src ?? '', loaded: !!write.querySelector('.md-image.md-img-loaded') };
+    // Undo, so no crash-recovery draft is left behind.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, bubbles: true }));
+    return result;
+  })()`);
+  pendingId = /pending-images\/([\w-]+)\//.exec(pasted?.src ?? '')?.[1] ?? null;
+  check('pasted image goes to the pending folder', pendingId !== null, pasted?.src);
+  check('pasted image is displayed', pasted?.loaded === true);
 } catch (error) {
   check('smoke test ran', false, String(error));
 } finally {
@@ -132,6 +176,8 @@ try {
         ? `localStorage.removeItem('marktype.theme')`
         : `localStorage.setItem('marktype.theme', ${JSON.stringify(saved)})`,
     );
+    if (pendingId)
+      await cdp?.eval(`window.__TAURI_INTERNALS__.invoke('discard_pending_images', { id: '${pendingId}' })`);
   } catch {
     // app already gone
   }
@@ -139,6 +185,7 @@ try {
   app.kill();
   rmSync(themeCss, { force: true });
   rmSync(assetDir, { recursive: true, force: true });
+  rmSync(imageDir, { recursive: true, force: true });
 }
 
 const failed = results.filter((ok) => !ok).length;

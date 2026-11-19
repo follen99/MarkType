@@ -97,6 +97,8 @@ export function createWebPlatform(): Platform {
         window.addEventListener('beforeunload', onBeforeUnload);
         return () => window.removeEventListener('beforeunload', onBeforeUnload);
       },
+      // Dropped files arrive as DOM drag events, handled by the editor.
+      onFileDrop: async () => () => {},
     },
     files: {
       async pickOpen() {
@@ -169,6 +171,8 @@ export function createWebPlatform(): Platform {
     },
     // No themes folder in the browser: only the built-in themes.
     themes: null,
+    // Pasted and dropped images stay in memory (blob URLs) until phase 2 packages them in a .zip.
+    images: null,
     prefs,
     // Relative images cannot be read from a single opened file; they load only if they are URLs.
     resolveAssetUrl: (_doc, src) => src,

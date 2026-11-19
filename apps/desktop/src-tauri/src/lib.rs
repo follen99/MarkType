@@ -3,7 +3,7 @@
 
 mod commands;
 
-use commands::{app, drafts, folder, fs, search, themes};
+use commands::{app, drafts, folder, fs, images, search, themes};
 
 /// Builds and runs the Tauri application.
 pub fn run() {
@@ -30,6 +30,11 @@ pub fn run() {
             themes::list_themes,
             themes::watch_themes,
             themes::open_themes_folder,
+            images::save_image,
+            images::move_image,
+            images::read_image_file,
+            images::pending_images_root,
+            images::discard_pending_images,
         ])
         .run(tauri::generate_context!())
         .expect("error while running MarkType");

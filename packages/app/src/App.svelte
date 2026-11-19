@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isEditorCommand } from '@marktype/editor';
-  import type { Platform } from '@marktype/platform';
+  import { basename, type Platform } from '@marktype/platform';
   import type { Translate } from '@marktype/i18n';
   import TitleBar from './chrome/TitleBar.svelte';
   import MenuBar from './chrome/MenuBar.svelte';
@@ -26,6 +26,9 @@
     type MenuSlot,
   } from './commands/registry.ts';
   import { shortcutCandidates } from './commands/keys.ts';
+  import { DEFAULT_IMAGE_SETTINGS, isImageName, type ImageDestination, type ImageInput } from './images.ts';
+
+  const MARKDOWN_FILE = /\.(md|markdown|mdown|mkd|mdx|txt)$/i;
 
   // `platform`, `t` and `themes` are fixed for the lifetime of the app, so reading them once is intended.
   let { platform, t, themes }: { platform: Platform; t: Translate; themes: ThemeManager } = $props();
@@ -152,6 +155,8 @@
         return void platform.window.setFullscreen(fullscreen);
       case 'followSystemTheme':
         return themes.toggleFollowSystem();
+      case 'insertImageFile':
+        return void insertImageFiles();
       case 'openThemesFolder':
         return themes.openFolder();
       case 'about':
@@ -159,6 +164,83 @@
           .alert('MarkType', t('about.message', { version: platform.appVersion }), t('dialog.ok'))
           .then(() => active?.focus());
     }
+  }
+
+  function pathInput(path: string): ImageInput {
+    return { name: basename(path), type: '', path, read: () => platform.images!.read(path) };
+  }
+
+  async function insertImageFiles() {
+    const paths = (await platform.images?.pick()) ?? [];
+    if (paths.length) await active?.insertImages(paths.map(pathInput));
+  }
+
+  // Files dropped from the file manager (desktop): images go in the document, markdown files open.
+  $effect(() => {
+    let off: (() => void) | undefined;
+    void platform.window
+      .onFileDrop(({ paths, x, y }) => {
+        const images = paths.filter(isImageName);
+        if (images.length) void active?.insertImages(images.map(pathInput), { x, y });
+        for (const path of paths) if (MARKDOWN_FILE.test(path)) void workspace.openPath(path);
+      })
+      .then((unsubscribe) => (off = unsubscribe));
+    return () => off?.();
+  });
+
+  async function askImageSetting(field: 'pattern' | 'customFolder') {
+    const pattern = field === 'pattern';
+    const value = await dialogs.prompt(
+      t(pattern ? 'image.pattern.title' : 'image.folder.title'),
+      t(pattern ? 'image.pattern.label' : 'image.folder.label'),
+      workspace.imageSettings[field] || (pattern ? DEFAULT_IMAGE_SETTINGS.pattern : './img'),
+      t('dialog.ok'),
+      t('dialog.cancel'),
+    );
+    if (value === null || !value.trim()) return;
+    workspace.setImageSettings(
+      pattern ? { pattern: value.trim() } : { customFolder: value.trim(), destination: 'custom' },
+    );
+  }
+
+  // Format menu: where images are copied and how they are named (docs/SPEC.md §10).
+  function imageSlotItems(): SlotItem[] {
+    if (!platform.images) return [];
+    const settings = workspace.imageSettings;
+    const destination = (id: ImageDestination, label: string, run?: () => void): SlotItem => ({
+      kind: 'item',
+      key: `image-${id}`,
+      label,
+      checked: settings.destination === id,
+      run: run ?? (() => workspace.setImageSettings({ destination: id })),
+    });
+    return [
+      { kind: 'header', label: t('image.whenInsert') },
+      destination('assets', t('image.dest.assets')),
+      destination('filenameAssets', t('image.dest.filenameAssets')),
+      destination(
+        'custom',
+        settings.customFolder
+          ? t('image.dest.customSet', { folder: settings.customFolder })
+          : t('image.dest.custom'),
+        () => void askImageSetting('customFolder'),
+      ),
+      destination('none', t('image.dest.none')),
+      {
+        kind: 'item',
+        key: 'image-ask-name',
+        label: t('image.askName'),
+        checked: settings.askName,
+        run: () => workspace.setImageSettings({ askName: !settings.askName }),
+      },
+      {
+        kind: 'item',
+        key: 'image-pattern',
+        label: t('image.pattern'),
+        checked: false,
+        run: () => void askImageSetting('pattern'),
+      },
+    ];
   }
 
   function shortcutOf(id: CommandId): string | undefined {
@@ -183,12 +265,14 @@
   }
 
   function isVisible(id: CommandId): boolean {
-    return id !== 'openThemesFolder' || platform.themes !== null;
+    if (id === 'openThemesFolder') return platform.themes !== null;
+    if (id === 'insertImageFile') return platform.images !== null;
+    return true;
   }
 
   // Themes menu: light and dark themes in two groups, so "follow system" shows one choice per group.
   function slotItems(slot: MenuSlot['slot']): SlotItem[] {
-    if (slot !== 'themes') return [];
+    if (slot === 'images') return imageSlotItems();
     const items: SlotItem[] = [];
     for (const dark of [false, true]) {
       items.push({ kind: 'header', label: t(dark ? 'theme.groupDark' : 'theme.groupLight') });
