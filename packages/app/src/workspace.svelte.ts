@@ -4,25 +4,33 @@ import { isInside, type Draft, type FileRef, type Platform } from '@marktype/pla
 import type { Dialogs } from './dialogs.svelte.ts';
 import { DocumentController, errorMessage } from './document.svelte.ts';
 import { DEFAULT_IMAGE_SETTINGS, loadImageSettings, type ImageSettings } from './images.ts';
+import {
+  MAX_RECENT_FOLDERS,
+  addRecent,
+  pathList,
+  removeRecent,
+  samePath,
+  type Session,
+} from './session.ts';
 
 const MAX_RECENT = 20;
 const MAX_CLOSED = 20;
 
-const samePath = (a: string, b: string) =>
-  a.replace(/\\/g, '/').toLowerCase() === b.replace(/\\/g, '/').toLowerCase();
-
-/** Open documents (tabs), the opened folder and recent files. */
+/** Open documents (tabs), the opened folder, recent files and folders, the saved session. */
 export class Workspace {
   docs = $state<DocumentController[]>([]);
   activeId = $state('');
   folder = $state<string | null>(null);
   autosave = $state(false);
   recentFiles = $state<string[]>([]);
+  recentFolders = $state<string[]>([]);
   imageSettings = $state<ImageSettings>(DEFAULT_IMAGE_SETTINGS);
 
   private main: HTMLElement | null = null;
   private closed: string[] = [];
   private lastMode: EditorMode = 'wysiwyg';
+  /** The session is saved only once startup has restored it (or skipped it). */
+  private sessionReady = false;
 
   constructor(
     private platform: Platform,
@@ -30,7 +38,8 @@ export class Workspace {
     private t: Translate,
   ) {
     this.autosave = platform.prefs.get('autosave', false);
-    this.recentFiles = platform.prefs.get<string[]>('recentFiles', []);
+    this.recentFiles = pathList(platform.prefs.get<unknown>('recentFiles', []), MAX_RECENT);
+    this.recentFolders = pathList(platform.prefs.get<unknown>('recentFolders', []), MAX_RECENT_FOLDERS);
     this.lastMode = platform.prefs.get<EditorMode>('mode', 'wysiwyg');
     this.imageSettings = loadImageSettings(platform.prefs);
   }
@@ -54,6 +63,7 @@ export class Workspace {
         autosave: () => this.autosave,
         openLocal: (path) => void this.openPath(path),
         imageSettings: () => this.imageSettings,
+        setImageSettings: (patch) => this.setImageSettings(patch),
       },
       this.lastMode,
     );
@@ -81,8 +91,11 @@ export class Workspace {
     return this.docs.find((d) => d.file && samePath(d.file.id, path));
   }
 
-  /** Opens a file in a tab (or focuses its tab). Reuses an empty untitled tab. */
-  async openFile(file: FileRef): Promise<DocumentController | null> {
+  /**
+   * Opens a file in a tab (or focuses its tab). Reuses an empty untitled tab. A file that cannot be read
+   * leaves no tab behind; a deleted one is also dropped from the recent files.
+   */
+  async openFile(file: FileRef, remember = true): Promise<DocumentController | null> {
     const existing = this.find(file.id);
     if (existing) {
       this.activate(existing);
@@ -92,17 +105,18 @@ export class Workspace {
     const doc = reuse ?? this.create();
     const ok = await doc.openFile(file);
     if (!ok) {
-      if (!reuse) this.remove(doc, true);
+      if (!reuse && this.docs.includes(doc)) this.remove(doc, true);
+      if (this.platform.folders && !(await this.platform.folders.exists(file.id))) this.forget([file.id]);
       return null;
     }
     this.activate(doc);
-    this.remember(file.id);
+    if (remember) this.remember(file.id);
     return doc;
   }
 
-  async openPath(path: string): Promise<DocumentController | null> {
+  async openPath(path: string, remember = true): Promise<DocumentController | null> {
     if (!this.platform.folders) return null;
-    return this.openFile(this.platform.folders.fileRef(path));
+    return this.openFile(this.platform.folders.fileRef(path), remember);
   }
 
   async pickAndOpen(): Promise<void> {
@@ -112,8 +126,57 @@ export class Workspace {
 
   private remember(path: string): void {
     if (this.platform.kind === 'web') return;
-    this.recentFiles = [path, ...this.recentFiles.filter((p) => !samePath(p, path))].slice(0, MAX_RECENT);
+    this.recentFiles = addRecent(this.recentFiles, path, MAX_RECENT);
     this.platform.prefs.set('recentFiles', this.recentFiles);
+  }
+
+  /** Drops deleted files and folders from the recent lists and the last folder. */
+  forget(paths: string[]): void {
+    const { prefs } = this.platform;
+    let files = this.recentFiles;
+    let folders = this.recentFolders;
+    for (const path of paths) {
+      files = removeRecent(files, path);
+      folders = removeRecent(folders, path);
+      const last = prefs.get<string | null>('lastFolder', null);
+      if (last && samePath(last, path)) prefs.set('lastFolder', null);
+    }
+    if (files.length !== this.recentFiles.length) {
+      this.recentFiles = files;
+      prefs.set('recentFiles', files);
+    }
+    if (folders.length !== this.recentFolders.length) {
+      this.recentFolders = folders;
+      prefs.set('recentFolders', folders);
+    }
+  }
+
+  clearRecentFolders(): void {
+    this.recentFolders = [];
+    this.platform.prefs.set('recentFolders', null);
+  }
+
+  // ---------- session ----------
+
+  /** Starts saving the open tabs (after startup restored them). */
+  startSession(): void {
+    this.sessionReady = true;
+    this.saveSession();
+  }
+
+  /** Remembers the tabs that have a file, in order, and the active one (prefs key `session`). */
+  saveSession(): void {
+    if (!this.sessionReady || this.platform.kind === 'web') return;
+    const files = this.docs.flatMap((doc) => (doc.file ? [doc.file.id] : []));
+    const session: Session = { files, active: this.active?.file?.id ?? null };
+    this.platform.prefs.set('session', files.length ? session : null);
+  }
+
+  /** Reopens the files of the last session (already checked to exist), then focuses the active one. */
+  async restoreSession(files: string[], active: string | null): Promise<void> {
+    for (const path of files) await this.openPath(path, false);
+    const doc = active ? this.find(active) : undefined;
+    if (doc) this.activate(doc);
   }
 
   private remove(doc: DocumentController, discard: boolean): void {
@@ -138,6 +201,14 @@ export class Workspace {
     if (this.docs.length === 1 && doc.pristine) return true;
     this.remove(doc, true);
     return true;
+  }
+
+  /** Closes every tab but `keep` (stops if the user cancels on an unsaved one). */
+  async closeOthers(keep: DocumentController): Promise<void> {
+    for (const doc of this.docs.filter((d) => d !== keep)) {
+      if (!(await this.closeTab(doc))) break;
+    }
+    this.activate(keep);
   }
 
   async reopenClosed(): Promise<void> {
@@ -204,6 +275,8 @@ export class Workspace {
   async openFolder(path: string): Promise<void> {
     this.folder = path;
     this.platform.prefs.set('lastFolder', path);
+    this.recentFolders = addRecent(this.recentFolders, path, MAX_RECENT_FOLDERS);
+    this.platform.prefs.set('recentFolders', this.recentFolders);
   }
 
   closeFolder(): void {
@@ -220,10 +293,11 @@ export class Workspace {
       const rest = doc.file.id.slice(oldPath.length);
       doc.setFile(folders.fileRef(newPath + rest));
     }
-    this.recentFiles = this.recentFiles.map((p) =>
-      isInside(p, oldPath) ? newPath + p.slice(oldPath.length) : p,
-    );
+    const moved = (p: string) => (isInside(p, oldPath) ? newPath + p.slice(oldPath.length) : p);
+    this.recentFiles = this.recentFiles.map(moved);
     this.platform.prefs.set('recentFiles', this.recentFiles);
+    this.recentFolders = this.recentFolders.map(moved);
+    this.platform.prefs.set('recentFolders', this.recentFolders);
   }
 
   // ---------- crash recovery ----------

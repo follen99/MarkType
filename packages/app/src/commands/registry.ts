@@ -112,7 +112,7 @@ export const DEFAULT_KEYBINDINGS: Partial<Record<CommandId, string[]>> = {
 
 /** A place in a menu filled at runtime (e.g. the installed themes). */
 export interface MenuSlot {
-  slot: 'themes' | 'images';
+  slot: 'themes' | 'images' | 'recentFolders';
 }
 
 export type MenuEntry = CommandId | '-' | MenuSlot;
@@ -132,6 +132,8 @@ export const MENUS: MenuDef[] = [
       'openFile',
       'openFolder',
       'quickOpen',
+      '-',
+      { slot: 'recentFolders' },
       '-',
       'save',
       'saveAs',

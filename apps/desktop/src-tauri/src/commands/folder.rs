@@ -237,6 +237,18 @@ pub async fn trash_path(path: PathBuf) -> Result<(), String> {
     .await
 }
 
+/// "file", "dir" or None when nothing is at `path` (used to skip deleted files and folders).
+#[tauri::command]
+pub async fn path_kind(path: PathBuf) -> Result<Option<&'static str>, String> {
+    blocking(move || Ok(kind_of(&path))).await
+}
+
+fn kind_of(path: &Path) -> Option<&'static str> {
+    std::fs::metadata(path)
+        .ok()
+        .map(|meta| if meta.is_dir() { "dir" } else { "file" })
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -299,5 +311,14 @@ mod tests {
         let file = create_file(dir.path(), "note.md").unwrap();
         let renamed = rename(&file, "Note.md").unwrap();
         assert!(renamed.ends_with("Note.md"));
+    }
+
+    #[test]
+    fn tells_files_from_folders_and_missing_paths() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = create_file(dir.path(), "note.md").unwrap();
+        assert_eq!(kind_of(dir.path()), Some("dir"));
+        assert_eq!(kind_of(&file), Some("file"));
+        assert_eq!(kind_of(&dir.path().join("gone.md")), None);
     }
 }

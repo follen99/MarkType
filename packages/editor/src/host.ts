@@ -10,6 +10,7 @@ import { serializeMarkdown } from './markdown/serialize.ts';
 import { computeStats, type TextStats } from './stats.ts';
 import { createWysiwygView } from './wysiwyg/view.ts';
 import { editLinkAt, runWysiwygCommand } from './wysiwyg/commands.ts';
+import { KEEP_IMAGES_META } from './wysiwyg/removedimages.ts';
 
 type SourceModule = typeof import('./source/lazy.ts');
 let sourceModule: SourceModule | null = null;
@@ -61,6 +62,11 @@ export interface EditorHostOptions {
   onOutline?(outline: OutlineItem[]): void;
   /** Index in the outline of the heading at the top of the viewport (-1 before the first heading). */
   onActiveHeading?(index: number): void;
+  /**
+   * The user deleted these images (their `src`) from the text in WYSIWYG mode. Not called for cut, drag
+   * and drop, undo/redo or source mode.
+   */
+  onImagesRemoved?(srcs: string[]): void;
 }
 
 export type { FindQuery, FindResult, FindAction, ImageRef, SaveImage };
@@ -219,6 +225,7 @@ export class EditorHost {
       const next = node.type.name === 'image' ? map.get(node.attrs.src as string) : undefined;
       if (next !== undefined) tr.setNodeMarkup(pos, null, { ...node.attrs, src: next });
     });
+    tr.setMeta(KEEP_IMAGES_META, true);
     if (tr.docChanged) view.dispatch(tr);
   }
 
@@ -246,6 +253,9 @@ export class EditorHost {
         openLink: this.options.openLink,
         onEditLink: (view, from, to) => void editLinkAt(view, this.options, from, to),
         saveImage: this.options.saveImage,
+        onImagesRemoved: (srcs) => {
+          if (!this.destroyed) this.options.onImagesRemoved?.(srcs);
+        },
         onUpdate: (_view, docChanged) => {
           if (docChanged) this.options.onChange?.();
           this.scheduleStatus();

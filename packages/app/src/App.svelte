@@ -1,6 +1,6 @@
 <script lang="ts">
   import { isEditorCommand } from '@marktype/editor';
-  import { basename, type LaunchPath, type Platform } from '@marktype/platform';
+  import { basename, dirname, isInside, type LaunchPath, type Platform } from '@marktype/platform';
   import type { Translate } from '@marktype/i18n';
   import TitleBar from './chrome/TitleBar.svelte';
   import MenuBar from './chrome/MenuBar.svelte';
@@ -20,7 +20,9 @@
   import { FileTree } from './filetree.svelte.ts';
   import { FileActions } from './sidebar/fileactions.ts';
   import { SidebarState } from './sidebar/sidebar.svelte.ts';
-  import { ContextMenuState } from './ui/contextmenu.svelte.ts';
+  import { ContextMenuState, type ContextMenuEntry } from './ui/contextmenu.svelte.ts';
+import { parseSession, planRestore, samePath } from './session.ts';
+import type { DocumentController } from './document.svelte.ts';
   import {
     DEFAULT_KEYBINDINGS,
     buildShortcutMap,
@@ -92,11 +94,110 @@
     if (path) await openFolder(path);
   }
 
-  async function openFolder(path: string) {
+  /** Opens a folder in the sidebar; `reveal` shows the Files panel (not when restoring the session). */
+  async function openFolder(path: string, reveal = true) {
     await workspace.openFolder(path);
     await tree?.open(path);
-    sidebar.show('files');
+    if (reveal) sidebar.reveal('files');
   }
+
+  /** A folder from the recent list: one deleted meanwhile is dropped from the list. */
+  async function openRecentFolder(path: string) {
+    if (!folders) return;
+    if ((await folders.exists(path)) !== 'dir') {
+      workspace.forget([path]);
+      await dialogs.alert(t('recentFolders.missing.title'), t('recentFolders.missing', { path }), t('dialog.ok'));
+      return;
+    }
+    await openFolder(path).catch(() => workspace.closeFolder());
+  }
+
+  // Menus of the buttons at the bottom of the sidebar.
+  function newMenu(): ContextMenuEntry[] {
+    const root = tree?.root;
+    const items: ContextMenuEntry[] = [{ label: t('sidebar.footer.newDocument'), run: () => run('newFile') }];
+    if (root && actions)
+      items.push(
+        '-',
+        { header: basename(root) || root },
+        { label: t('files.newFileHere'), run: () => void actions.newFile(root) },
+        { label: t('files.newFolder'), run: () => void actions.newFolder(root) },
+      );
+    return items;
+  }
+
+  function folderMenu(): ContextMenuEntry[] {
+    const current = workspace.folder;
+    const items: ContextMenuEntry[] = [{ label: t('cmd.openFolder'), run: () => run('openFolder') }];
+    items.push('-', { header: t('recentFolders.title') });
+    if (workspace.recentFolders.length) {
+      for (const path of workspace.recentFolders)
+        items.push({
+          label: basename(path) || path,
+          detail: dirname(path),
+          checked: current !== null && samePath(current, path),
+          run: () => void openRecentFolder(path),
+        });
+      items.push('-', { label: t('recentFolders.clear'), run: () => workspace.clearRecentFolders() });
+    } else {
+      items.push({ label: t('recentFolders.empty'), run: () => {}, disabled: true });
+    }
+    items.push({ label: t('sidebar.closeFolder'), run: () => workspace.closeFolder(), disabled: !current });
+    return items;
+  }
+
+  // Right click on a tab.
+  function tabMenu(event: MouseEvent, doc: DocumentController) {
+    const path = doc.file?.id;
+    const items: ContextMenuEntry[] = [];
+    if (path && folders) {
+      items.push(
+        { label: t('tabs.revealFolder'), run: () => void revealFileFolder(path) },
+        { label: t('files.copyPath'), run: () => void navigator.clipboard?.writeText(path).catch(() => {}) },
+        '-',
+      );
+    }
+    items.push(
+      { label: t('tabs.close'), run: () => void workspace.closeTab(doc) },
+      {
+        label: t('tabs.closeOthers'),
+        run: () => void workspace.closeOthers(doc),
+        disabled: workspace.docs.length < 2,
+      },
+    );
+    menu.show(event, items);
+  }
+
+  /** "Open the file's folder": inside the open folder it is shown in the tree, otherwise opened. */
+  async function revealFileFolder(path: string) {
+    const root = workspace.folder;
+    if (root && tree && isInside(path, root)) {
+      sidebar.reveal('files');
+      await tree.reveal(path);
+      return;
+    }
+    const dir = dirname(path);
+    if (root) {
+      const choice = await dialogs.confirm(
+        t('tabs.replaceFolder.title'),
+        t('tabs.replaceFolder.message', { folder: dir, current: root }),
+        [
+          { id: 'cancel', label: t('dialog.cancel'), cancel: true },
+          { id: 'open', label: t('tabs.replaceFolder.open'), primary: true },
+        ],
+      );
+      if (choice !== 'open') return;
+    }
+    await openFolder(dir).catch(() => workspace.closeFolder());
+    await tree?.reveal(path);
+  }
+
+  // Remember the open tabs (restored at the next start).
+  $effect(() => {
+    void workspace.docs.map((doc) => doc.file?.id);
+    void workspace.activeId;
+    workspace.saveSession();
+  });
 
   // Closing the folder in the workspace also empties the tree.
   $effect(() => {
@@ -298,6 +399,31 @@
     ];
   }
 
+  // File menu: the recent folders (the open one checked).
+  function recentFolderSlotItems(): SlotItem[] {
+    if (!folders || !workspace.recentFolders.length) return [];
+    const current = workspace.folder;
+    return [
+      { kind: 'header', label: t('recentFolders.title') },
+      ...workspace.recentFolders.map(
+        (path): SlotItem => ({
+          kind: 'item',
+          key: `folder-${path}`,
+          label: basename(path) || path,
+          checked: current !== null && samePath(current, path),
+          run: () => void openRecentFolder(path),
+        }),
+      ),
+      {
+        kind: 'item',
+        key: 'folder-clear',
+        label: t('recentFolders.clear'),
+        checked: false,
+        run: () => workspace.clearRecentFolders(),
+      },
+    ];
+  }
+
   /** First shortcut of `id` that really runs it (a user binding may have taken it for another command). */
   function shortcutOf(id: CommandId): string | undefined {
     return keybindings[id]?.find((shortcut) => shortcuts.get(normalizeShortcut(shortcut)) === id);
@@ -331,6 +457,7 @@
   // Themes menu: light and dark themes in two groups, so "follow system" shows one choice per group.
   function slotItems(slot: MenuSlot['slot']): SlotItem[] {
     if (slot === 'images') return imageSlotItems();
+    if (slot === 'recentFolders') return recentFolderSlotItems();
     const items: SlotItem[] = [];
     for (const dark of [false, true]) {
       items.push({ kind: 'header', label: t(dark ? 'theme.groupDark' : 'theme.groupLight') });
@@ -379,6 +506,26 @@
     }
   }
 
+  /**
+   * Reopens the last folder and the files of the last session. What was deleted meanwhile is skipped,
+   * forgotten (session, last folder, recent lists) and listed in one alert.
+   */
+  async function restoreSession(last: string | null) {
+    if (!folders) return;
+    const plan = await planRestore(last, parseSession(prefs.get<unknown>('session', null)), (path) =>
+      folders.exists(path),
+    );
+    if (plan.folder) await openFolder(plan.folder, false).catch(() => workspace.closeFolder());
+    await workspace.restoreSession(plan.files, plan.active);
+    if (!plan.missing.length) return;
+    workspace.forget(plan.missing);
+    await dialogs.alert(
+      t('session.missing.title'),
+      t('session.missing', { count: plan.missing.length, paths: plan.missing.join('\n') }),
+      t('dialog.ok'),
+    );
+  }
+
   async function loadKeybindings() {
     if (!platform.config) return;
     try {
@@ -409,8 +556,8 @@
       }
       const initial = (await launch?.initial().catch(() => [])) ?? [];
       if (initial.length) await openLaunchPaths(initial);
-      else if (last && folders && settings.restoreFolder)
-        await openFolder(last).catch(() => workspace.closeFolder());
+      else if (folders && settings.restoreFolder) await restoreSession(last);
+      workspace.startSession();
       const error = platform.config?.settingsError;
       if (error)
         await dialogs.alert('MarkType', t('settings.invalidFile', { message: error }), t('dialog.ok'));
@@ -453,10 +600,22 @@
   </TitleBar>
   <div class="mt-body" class:sidebar-hidden={!sidebar.visible}>
     {#if sidebar.visible}
-      <Sidebar {sidebar} {workspace} {tree} {actions} {folders} {menu} {t} {pickFolder} />
+      <Sidebar
+        {sidebar}
+        {workspace}
+        {tree}
+        {actions}
+        {folders}
+        {menu}
+        {t}
+        {pickFolder}
+        {newMenu}
+        {folderMenu}
+        openSettings={() => run('preferences')}
+      />
     {/if}
     <div class="mt-content">
-      <Tabs {workspace} {t} />
+      <Tabs {workspace} {t} oncontextmenu={tabMenu} />
       <div class="mt-editor-area">
         <FindBar doc={active} {t} bind:api={findBar} />
         <main id="mt-main" use:mountWorkspace></main>

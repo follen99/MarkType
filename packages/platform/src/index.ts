@@ -107,6 +107,8 @@ export interface FoldersApi {
   move(path: string, targetDir: string): Promise<string>;
   /** Moves to the OS trash / recycle bin. */
   trash(path: string): Promise<void>;
+  /** What is at `path`: a file, a folder, or nothing (also on any error). */
+  exists(path: string): Promise<'file' | 'dir' | null>;
   fileRef(path: string): FileRef;
 }
 

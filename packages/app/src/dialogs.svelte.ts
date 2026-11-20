@@ -7,8 +7,23 @@ export interface DialogButton {
   danger?: boolean;
 }
 
+export interface ConfirmResult {
+  /** The button pressed. */
+  id: string;
+  /** State of the checkbox (false without one). */
+  checked: boolean;
+}
+
 export type DialogRequest =
-  | { kind: 'confirm'; title: string; message: string; buttons: DialogButton[]; resolve(id: string): void }
+  | {
+      kind: 'confirm';
+      title: string;
+      message: string;
+      buttons: DialogButton[];
+      /** Label of an optional checkbox (e.g. "Remember my choice"), unchecked at first. */
+      checkbox?: string;
+      resolve(result: ConfirmResult): void;
+    }
   | {
       kind: 'prompt';
       title: string;
@@ -39,7 +54,12 @@ export class Dialogs {
   }
 
   confirm(title: string, message: string, buttons: DialogButton[]): Promise<string> {
-    return this.show<string>((resolve) => ({ kind: 'confirm', title, message, buttons, resolve }));
+    return this.ask(title, message, buttons).then((result) => result.id);
+  }
+
+  /** Like `confirm`, with an optional checkbox whose state comes back with the button. */
+  ask(title: string, message: string, buttons: DialogButton[], checkbox?: string): Promise<ConfirmResult> {
+    return this.show<ConfirmResult>((resolve) => ({ kind: 'confirm', title, message, buttons, checkbox, resolve }));
   }
 
   alert(title: string, message: string, okLabel: string): Promise<void> {

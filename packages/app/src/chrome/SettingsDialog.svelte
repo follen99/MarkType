@@ -3,7 +3,7 @@
   import type { Platform } from '@marktype/platform';
   import type { Workspace } from '../workspace.svelte.ts';
   import type { ThemeManager } from '../theme.svelte.ts';
-  import { DEFAULT_IMAGE_SETTINGS, type ImageDestination } from '../images.ts';
+  import { DEFAULT_IMAGE_SETTINGS, type ImageDestination, type RemoveImageFile } from '../images.ts';
   import { FONT_SIZES, PAGE_WIDTHS, type AppSettings, type LanguageSetting } from '../settings.svelte.ts';
 
   let {
@@ -29,6 +29,11 @@
     ['filenameAssets', 'image.dest.filenameAssets'],
     ['custom', 'image.dest.custom'],
     ['none', 'image.dest.none'],
+  ];
+  const REMOVE_FILE: [RemoveImageFile, MessageKey][] = [
+    ['ask', 'settings.images.removeFile.ask'],
+    ['trash', 'settings.images.removeFile.trash'],
+    ['keep', 'settings.images.removeFile.keep'],
   ];
 
   let card = $state<HTMLElement | null>(null);
@@ -214,6 +219,20 @@
               />
               <span>{t('image.askName')}</span>
             </label>
+            <label class="mt-settings-row">
+              <span>{t('settings.images.removeFile')}</span>
+              <select
+                class="mt-input"
+                value={workspace.imageSettings.removeFile}
+                onchange={(e) =>
+                  workspace.setImageSettings({ removeFile: e.currentTarget.value as RemoveImageFile })}
+              >
+                {#each REMOVE_FILE as [id, label] (id)}
+                  <option value={id}>{t(label)}</option>
+                {/each}
+              </select>
+            </label>
+            <p class="mt-settings-note">{t('settings.images.removeFileHelp')}</p>
           </section>
         {/if}
 

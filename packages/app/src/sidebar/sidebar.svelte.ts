@@ -24,12 +24,17 @@ export class SidebarState {
     this.prefs.set('sidebar.visible', this.visible);
   }
 
+  /** The user's shortcut: pressing the one of the tab already shown hides the sidebar (Typora behavior). */
   show(tab: SidebarTab): void {
-    // Pressing the shortcut of the tab already shown hides the sidebar (Typora behavior).
     if (this.visible && this.tab === tab && tab !== 'search') {
       this.toggle();
       return;
     }
+    this.reveal(tab);
+  }
+
+  /** Shows `tab` without ever hiding the sidebar (the app opening a panel, not the user toggling it). */
+  reveal(tab: SidebarTab): void {
     this.tab = tab;
     this.visible = true;
     this.prefs.set('sidebar.tab', tab);

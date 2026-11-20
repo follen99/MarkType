@@ -3,12 +3,13 @@
   import type { FoldersApi } from '@marktype/platform';
   import type { FileTree } from '../filetree.svelte.ts';
   import type { Workspace } from '../workspace.svelte.ts';
-  import type { ContextMenuState } from '../ui/contextmenu.svelte.ts';
+  import type { ContextMenuEntry, ContextMenuState } from '../ui/contextmenu.svelte.ts';
   import type { FileActions } from './fileactions.ts';
   import type { SidebarState, SidebarTab } from './sidebar.svelte.ts';
   import FilesPanel from './FilesPanel.svelte';
   import OutlinePanel from './OutlinePanel.svelte';
   import SearchPanel from './SearchPanel.svelte';
+  import Icon from '../ui/Icon.svelte';
 
   let {
     sidebar,
@@ -19,6 +20,9 @@
     menu,
     t,
     pickFolder,
+    newMenu,
+    folderMenu,
+    openSettings,
   }: {
     sidebar: SidebarState;
     workspace: Workspace;
@@ -28,7 +32,15 @@
     menu: ContextMenuState;
     t: Translate;
     pickFolder: () => void;
+    /** Items of the "+" and folder buttons at the bottom. */
+    newMenu: () => ContextMenuEntry[];
+    folderMenu: () => ContextMenuEntry[];
+    openSettings: () => void;
   } = $props();
+
+  function popup(event: MouseEvent, items: () => ContextMenuEntry[]) {
+    menu.toggleAbove(event.currentTarget as HTMLElement, items);
+  }
 
   const tabs: { id: SidebarTab; label: 'sidebar.files' | 'sidebar.outline' | 'sidebar.search' }[] = [
     { id: 'files', label: 'sidebar.files' },
@@ -77,6 +89,36 @@
     {:else}
       <SearchPanel {folders} {workspace} {sidebar} {t} />
     {/if}
+  </div>
+  <div class="mt-sidebar-footer">
+    <button
+      class="mt-icon-button"
+      title={t('sidebar.footer.new')}
+      aria-label={t('sidebar.footer.new')}
+      aria-haspopup="menu"
+      onclick={(e) => popup(e, newMenu)}
+    >
+      <Icon name="plus" />
+    </button>
+    {#if folders}
+      <button
+        class="mt-icon-button"
+        title={t('sidebar.footer.folders')}
+        aria-label={t('sidebar.footer.folders')}
+        aria-haspopup="menu"
+        onclick={(e) => popup(e, folderMenu)}
+      >
+        <Icon name="folder" />
+      </button>
+    {/if}
+    <button
+      class="mt-icon-button"
+      title={t('sidebar.footer.settings')}
+      aria-label={t('sidebar.footer.settings')}
+      onclick={openSettings}
+    >
+      <Icon name="gear" />
+    </button>
   </div>
   <div
     class="mt-sidebar-resizer"

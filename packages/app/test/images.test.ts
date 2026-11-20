@@ -10,6 +10,8 @@ import {
   imageMarkdownSrc,
   isImageName,
   loadImageSettings,
+  removalAction,
+  removedImageFiles,
   sanitizeFileName,
   shortHash,
   stem,
@@ -135,6 +137,59 @@ describe('settings', () => {
       set: () => {},
     };
     expect(loadImageSettings(prefs)).toEqual(DEFAULT_IMAGE_SETTINGS);
+  });
+
+  it('reads what to do with removed images (ask by default)', () => {
+    const prefs = (removeFile: unknown) => ({
+      get: <T>(_key: string, _fallback: T) => ({ removeFile }) as T,
+      set: () => {},
+    });
+    expect(DEFAULT_IMAGE_SETTINGS.removeFile).toBe('ask');
+    expect(loadImageSettings(prefs('trash')).removeFile).toBe('trash');
+    expect(loadImageSettings(prefs('keep')).removeFile).toBe('keep');
+    expect(loadImageSettings(prefs('delete')).removeFile).toBe('ask');
+  });
+});
+
+describe('removed images', () => {
+  // Like platform.resolveLocalLink for a document in C:/Notes.
+  const resolve = (src: string) =>
+    /^[a-z]+:\/\//i.test(src) ? null : src.includes(':') ? src : resolvePath('C:\\Notes', decodePathComponent(src));
+  const roots = ['C:\\Notes'];
+
+  it('keeps only local images inside the document folder', () => {
+    const files = removedImageFiles(
+      ['assets/a.png', 'https://x.org/b.png', 'D:/pics/c.png', '../d.png', 'notes.md', 'assets/sub/e%201.jpg'],
+      [],
+      resolve,
+      roots,
+    );
+    expect(files.map((f) => f.path)).toEqual(['C:\\Notes\\assets\\a.png', 'C:\\Notes\\assets\\sub\\e 1.jpg']);
+    expect(files.every((f) => !f.stillUsed)).toBe(true);
+  });
+
+  it('notices another image of the document pointing to the same file', () => {
+    const [file] = removedImageFiles(['assets/a.png'], ['./assets/A.png', 'assets/b.png'], resolve, roots);
+    expect(file?.stillUsed).toBe(true);
+  });
+
+  it('accepts the pending folder of an unsaved document', () => {
+    const pending = 'C:\\App\\pending-images\\doc1';
+    const files = removedImageFiles(['C:/App/pending-images/doc1/x.png'], [], (s) => s, [pending]);
+    expect(files).toHaveLength(1);
+  });
+
+  it('lists each file once', () => {
+    expect(removedImageFiles(['assets/a.png', './assets/a.png'], [], resolve, roots)).toHaveLength(1);
+  });
+
+  it('always asks for a file still in use, otherwise follows the setting', () => {
+    const image = { src: 'a.png', path: 'C:\\Notes\\a.png', stillUsed: false };
+    expect(removalAction(image, 'ask')).toBe('ask');
+    expect(removalAction(image, 'trash')).toBe('trash');
+    expect(removalAction(image, 'keep')).toBe('keep');
+    expect(removalAction({ ...image, stillUsed: true }, 'trash')).toBe('askShared');
+    expect(removalAction({ ...image, stillUsed: true }, 'keep')).toBe('askShared');
   });
 });
 

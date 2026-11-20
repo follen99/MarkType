@@ -2,7 +2,8 @@
  * Where pasted, dropped and inserted images go and how they are named (docs/SPEC.md §10). Pure functions:
  * the platform only writes the bytes (and picks `-1`, `-2`… suffixes so nothing is ever overwritten).
  */
-import { basename, dirname, isAbsolutePath, resolvePath, type PrefsApi } from '@marktype/platform';
+import { basename, dirname, isAbsolutePath, isInside, resolvePath, type PrefsApi } from '@marktype/platform';
+import { samePath } from './session.ts';
 
 /** An image to store: a pasted/dropped file (no path) or a file on disk. */
 export interface ImageInput {
@@ -15,6 +16,9 @@ export interface ImageInput {
 
 export type ImageDestination = 'assets' | 'filenameAssets' | 'custom' | 'none';
 
+/** What to do with the file of an image removed from the text (and not used elsewhere in it). */
+export type RemoveImageFile = 'ask' | 'trash' | 'keep';
+
 export interface ImageSettings {
   destination: ImageDestination;
   /** For `custom`: relative to the document or absolute; may contain `${filename}`. */
@@ -23,6 +27,7 @@ export interface ImageSettings {
   pattern: string;
   /** Ask for the file name every time. */
   askName: boolean;
+  removeFile: RemoveImageFile;
 }
 
 export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
@@ -30,9 +35,11 @@ export const DEFAULT_IMAGE_SETTINGS: ImageSettings = {
   customFolder: '',
   pattern: '${filename}-${timestamp}',
   askName: false,
+  removeFile: 'ask',
 };
 
 const DESTINATIONS: readonly ImageDestination[] = ['assets', 'filenameAssets', 'custom', 'none'];
+const REMOVE_FILE: readonly RemoveImageFile[] = ['ask', 'trash', 'keep'];
 
 export function loadImageSettings(prefs: PrefsApi): ImageSettings {
   const stored = prefs.get<Partial<ImageSettings>>('images', {});
@@ -46,6 +53,9 @@ export function loadImageSettings(prefs: PrefsApi): ImageSettings {
         ? stored.pattern
         : DEFAULT_IMAGE_SETTINGS.pattern,
     askName: stored.askName === true,
+    removeFile: REMOVE_FILE.includes(stored.removeFile as RemoveImageFile)
+      ? (stored.removeFile as RemoveImageFile)
+      : DEFAULT_IMAGE_SETTINGS.removeFile,
   };
 }
 
@@ -216,4 +226,39 @@ export function imageMarkdownSrc(docPath: string | null, imagePath: string): str
 export async function shortHash(bytes: Uint8Array): Promise<string> {
   const digest = new Uint8Array(await crypto.subtle.digest('SHA-256', bytes as Uint8Array<ArrayBuffer>));
   return Array.from(digest.slice(0, 4), (b) => b.toString(16).padStart(2, '0')).join('');
+}
+
+/** The file of an image the user removed from the text. */
+export interface RemovedImage {
+  src: string;
+  path: string;
+  /** Another image of the same document still points to this file. */
+  stillUsed: boolean;
+}
+
+/**
+ * Files of the removed images (`srcs`) that MarkType may offer to move to the trash: local image files
+ * inside one of `roots` (the document's folder, or the pending folder of an unsaved document).
+ * `remaining` are the sources still in the document; paths are compared after resolving them.
+ */
+export function removedImageFiles(
+  srcs: readonly string[],
+  remaining: readonly string[],
+  resolve: (src: string) => string | null,
+  roots: readonly string[],
+): RemovedImage[] {
+  const used = remaining.flatMap((src) => resolve(src) ?? []);
+  const out: RemovedImage[] = [];
+  for (const src of srcs) {
+    const path = resolve(src);
+    if (!path || !isImageName(path) || !roots.some((root) => isInside(path, root))) continue;
+    if (out.some((image) => samePath(image.path, path))) continue;
+    out.push({ src, path, stillUsed: used.some((p) => samePath(p, path)) });
+  }
+  return out;
+}
+
+/** What happens to a removed image's file: an image still used elsewhere always asks (with a warning). */
+export function removalAction(image: RemovedImage, setting: RemoveImageFile): 'askShared' | RemoveImageFile {
+  return image.stillUsed ? 'askShared' : setting;
 }

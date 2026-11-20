@@ -13,6 +13,7 @@ import type { Translate } from '@marktype/i18n';
 import {
   basename,
   decodePathComponent,
+  dirname,
   hasUrlScheme,
   isAbsolutePath,
   isInside,
@@ -27,6 +28,9 @@ import {
   imageExtension,
   imageFolder,
   imageMarkdownSrc,
+  removalAction,
+  removedImageFiles,
+  type RemovedImage,
   sanitizeFileName,
   shortHash,
   stem,
@@ -75,6 +79,7 @@ export interface DocumentEnv {
   /** Ctrl+click on a link to a local markdown file. */
   openLocal(path: string): void;
   imageSettings(): ImageSettings;
+  setImageSettings(patch: Partial<ImageSettings>): void;
 }
 
 /** One open document (a tab): file identity, editor, dirty state and save workflows. */
@@ -155,6 +160,7 @@ export class DocumentController {
       onStatus: (status) => (this.status = status),
       onOutline: (outline) => (this.outline = outline),
       onActiveHeading: (index) => (this.activeHeading = index),
+      onImagesRemoved: (srcs) => void this.imagesRemoved(srcs),
     });
     this.dirty = this.host.isDirty();
     if (this.dirty) this.scheduleDraft();
@@ -274,6 +280,79 @@ export class DocumentController {
     } catch (error) {
       await dialogs.alert(t('image.error.save'), errorMessage(error), t('dialog.ok'));
       return null;
+    }
+  }
+
+  /**
+   * The user deleted images from the text: offers to move their files to the trash (docs/SPEC.md §10).
+   * Only local images in the document's folder (or below), or pasted in an unsaved document, are
+   * considered. A file still used by another image of this document always asks, with a warning.
+   */
+  private async imagesRemoved(srcs: string[]): Promise<void> {
+    const { platform } = this.env;
+    const { images, folders } = platform;
+    if (!images || !folders || !this.host) return;
+    const roots = this.file ? [dirname(this.file.id)] : [resolvePath(await images.pendingRoot(), this.id)];
+    if (!this.host) return;
+    const resolve = (src: string) => platform.resolveLocalLink(this.file, src);
+    const removed = removedImageFiles(srcs, this.host.imageSources(), resolve, roots);
+    const existing: RemovedImage[] = [];
+    for (const image of removed) if ((await folders.exists(image.path)) === 'file') existing.push(image);
+    const setting = this.env.imageSettings().removeFile;
+    const ask: RemovedImage[] = [];
+    for (const image of existing) {
+      const action = removalAction(image, setting);
+      if (action === 'askShared') {
+        if (await this.askRemoval([image], true)) await this.trashImages([image]);
+      } else if (action === 'trash') {
+        await this.trashImages([image]);
+      } else if (action === 'ask') {
+        ask.push(image);
+      }
+    }
+    if (ask.length && (await this.askRemoval(ask, false))) await this.trashImages(ask);
+  }
+
+  /** Asks whether to trash the files; resolves to true for "Move to trash". */
+  private async askRemoval(images: RemovedImage[], shared: boolean): Promise<boolean> {
+    const { dialogs, t } = this.env;
+    const first = images[0]!;
+    let message =
+      images.length === 1
+        ? t('image.remove.message', { name: basename(first.path), path: first.path })
+        : t('image.remove.messageMany', {
+            count: images.length,
+            paths: images.map((image) => image.path).join('\n'),
+          });
+    if (shared) message += `\n\n${t('image.remove.stillUsed')}`;
+    const result = await dialogs.ask(
+      t('image.remove.title'),
+      message,
+      shared
+        ? [
+            { id: 'trash', label: t('image.remove.trash'), danger: true },
+            { id: 'keep', label: t('image.remove.keep'), primary: true, cancel: true },
+          ]
+        : [
+            { id: 'keep', label: t('image.remove.keep'), cancel: true },
+            { id: 'trash', label: t('image.remove.trash'), primary: true },
+          ],
+      shared ? undefined : t('image.remove.remember'),
+    );
+    const trash = result.id === 'trash';
+    if (result.checked) this.env.setImageSettings({ removeFile: trash ? 'trash' : 'keep' });
+    this.focus();
+    return trash;
+  }
+
+  private async trashImages(images: RemovedImage[]): Promise<void> {
+    const { platform, dialogs, t } = this.env;
+    for (const image of images) {
+      try {
+        await platform.folders!.trash(image.path);
+      } catch (error) {
+        await dialogs.alert(t('image.remove.error'), errorMessage(error), t('dialog.ok'));
+      }
     }
   }
 
