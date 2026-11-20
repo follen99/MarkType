@@ -5,6 +5,21 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.7.0] - 2026-11-20 (beta 2)
+
+### Added
+- Menus from the keyboard: `Alt` (pressed and released) or `F10` opens the File menu; arrows move between
+  items and menus, `Enter` runs, `Esc` goes back to the document.
+- Settings → "Hardware acceleration" (Windows): off uses less memory (about 156 MB instead of 181 MB with
+  an empty document), applies at the next start.
+- README: installation guide for Windows, macOS and Linux (unsigned builds, file association, settings folder).
+
+### Changed
+- Faster start: CodeMirror (source mode) and the code-highlighting language list load only when needed. The
+  JavaScript loaded at startup went from about 330 KB to 210 KB (gzip).
+- Less memory on Windows: WebView2 runs the GPU inside its browser process and without a spare renderer
+  (about 181 MB instead of 221 MB with an empty document).
+
 ## [0.6.0] - 2026-11-19 (beta 1)
 
 ### Added

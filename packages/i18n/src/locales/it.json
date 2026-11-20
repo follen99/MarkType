@@ -227,5 +227,7 @@
   "settings.files.themes": "Apri la cartella dei temi",
   "settings.invalidFile": "settings.json contiene un errore e non verrà modificato finché non lo correggi (le impostazioni di questa sessione non verranno salvate):\n{message}",
   "keybindings.error": "keybindings.json non è valido e viene ignorato:\n{message}",
-  "keybindings.invalid": "keybindings.json: voci ignorate perché non valide: {keys}"
+  "keybindings.invalid": "keybindings.json: voci ignorate perché non valide: {keys}",
+  "settings.hardwareAcceleration": "Accelerazione hardware (spenta usa meno memoria)",
+  "settings.restart": "Vale dal prossimo avvio."
 }

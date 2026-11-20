@@ -1,24 +1,28 @@
 import type { Node as PMNode } from 'prosemirror-model';
 import { TextSelection } from 'prosemirror-state';
 import type { EditorView as PMView } from 'prosemirror-view';
-import { EditorView as CMView } from '@codemirror/view';
+import type { EditorView as CMView } from '@codemirror/view';
 import type { EditorCommandId } from './commands.ts';
-import {
-  cmFind,
-  cmSetFind,
-  pmFind,
-  pmSetFind,
-  type FindAction,
-  type FindQuery,
-  type FindResult,
-} from './find.ts';
+import { pmFind, pmSetFind, type FindAction, type FindQuery, type FindResult } from './find.ts';
 import { defaultMarkdownStyle, type MarkdownStyle } from './markdown/processor.ts';
 import { parseMarkdown, topLevelLines } from './markdown/parse.ts';
 import { serializeMarkdown } from './markdown/serialize.ts';
 import { computeStats, type TextStats } from './stats.ts';
 import { createWysiwygView } from './wysiwyg/view.ts';
 import { editLinkAt, runWysiwygCommand } from './wysiwyg/commands.ts';
-import { createSourceView, insertImageText, runSourceCommand } from './source/view.ts';
+
+type SourceModule = typeof import('./source/lazy.ts');
+let sourceModule: SourceModule | null = null;
+let sourceLoading: Promise<SourceModule> | null = null;
+
+/** Loads CodeMirror (source mode) once; WYSIWYG-only sessions never download it. */
+export function loadSourceEditor(): Promise<SourceModule> {
+  sourceLoading ??= import('./source/lazy.ts').then((module) => (sourceModule = module));
+  return sourceLoading;
+}
+
+/** The source module; only called while a source view exists, so it is loaded. */
+const cm = (): SourceModule => sourceModule!;
 import { insertImageNodes, type ImageRef, type SaveImage } from './wysiwyg/clipboard.ts';
 
 export type EditorMode = 'wysiwyg' | 'source' | 'split';
@@ -120,6 +124,10 @@ export class EditorHost {
   private syncingScroll = false;
   private findQuery: FindQuery | null = null;
   private lastActiveHeading = -2;
+  /** Text shown in source mode while CodeMirror is still loading. */
+  private pendingText: string | null = null;
+  private mountToken = 0;
+  private destroyed = false;
 
   constructor(parent: HTMLElement, options: EditorHostOptions) {
     this.options = options;
@@ -142,18 +150,21 @@ export class EditorHost {
 
   /** Current markdown (`\n` line endings). */
   getMarkdown(): string {
+    if (this.pendingText !== null) return this.pendingText;
     if (this.source) return this.source.state.doc.toString();
     const doc = this.wysiwyg!.state.doc;
     return doc.eq(this.cleanDoc) ? this.cleanSource : serializeMarkdown(doc, this.style);
   }
 
   isDirty(): boolean {
+    if (this.pendingText !== null) return this.pendingText !== this.cleanSource;
     if (this.source) return this.source.state.doc.toString() !== this.cleanSource;
     return !this.wysiwyg!.state.doc.eq(this.cleanDoc);
   }
 
   /** True if the document has no content at all. */
   isEmpty(): boolean {
+    if (this.pendingText !== null) return this.pendingText.length === 0;
     if (this.source) return this.source.state.doc.length === 0;
     const doc = this.wysiwyg!.state.doc;
     return doc.childCount === 1 && doc.firstChild!.isTextblock && doc.firstChild!.content.size === 0;
@@ -171,7 +182,7 @@ export class EditorHost {
   insertImages(images: ImageRef[], point?: { x: number; y: number }): void {
     if (this.source) {
       const pos = point ? (this.source.posAtCoords(point) ?? undefined) : undefined;
-      insertImageText(this.source, images, pos);
+      cm().insertImageText(this.source, images, pos);
     } else if (this.wysiwyg) {
       const pos = point ? this.wysiwyg.posAtCoords({ left: point.x, top: point.y })?.pos : undefined;
       insertImageNodes(this.wysiwyg, images, pos);
@@ -180,7 +191,7 @@ export class EditorHost {
 
   /** The `src` of every markdown image in the document. */
   imageSources(): string[] {
-    const doc = this.source ? parseMarkdown(this.source.state.doc.toString()) : this.wysiwyg!.state.doc;
+    const doc = this.wysiwyg?.state.doc ?? parseMarkdown(this.getMarkdown());
     const out = new Set<string>();
     doc.descendants((node) => {
       if (node.type.name === 'image') out.add(node.attrs.src as string);
@@ -201,7 +212,8 @@ export class EditorHost {
       this.source.dispatch({ changes });
       return;
     }
-    const view = this.wysiwyg!;
+    const view = this.wysiwyg;
+    if (!view) return;
     const tr = view.state.tr;
     view.state.doc.descendants((node, pos) => {
       const next = node.type.name === 'image' ? map.get(node.attrs.src as string) : undefined;
@@ -240,10 +252,22 @@ export class EditorHost {
         },
       });
       pane.addEventListener('scroll', this.onScroll, { passive: true });
+    } else if (!sourceModule) {
+      // First use of source mode: load CodeMirror, then mount (unless the mode changed meanwhile).
+      this.pendingText = text;
+      const token = ++this.mountToken;
+      void loadSourceEditor().then(() => {
+        if (this.destroyed || token !== this.mountToken) return;
+        this.pendingText = null;
+        this.mount(mode, doc, text);
+        if (this.findQuery) this.setFind(this.findQuery, false);
+        this.focus();
+      });
+      return;
     } else {
       const sourcePane = this.pane('mt-source-pane');
       sourcePane.id = 'typora-source';
-      this.source = createSourceView(sourcePane, text, {
+      this.source = cm().createSourceView(sourcePane, text, {
         prompt: this.options.prompt,
         saveImage: this.options.saveImage,
         onUpdate: (update) => {
@@ -278,6 +302,8 @@ export class EditorHost {
   }
 
   private unmount(): void {
+    this.mountToken++;
+    this.pendingText = null;
     clearTimeout(this.previewTimer);
     cancelAnimationFrame(this.scrollFrame);
     this.wysiwyg?.destroy();
@@ -342,7 +368,8 @@ export class EditorHost {
   outline(): OutlineItem[] {
     if (this.source)
       return sourceHeadings(this.source.state.doc.toString()).map(({ level, text }) => ({ level, text }));
-    return docHeadings(this.wysiwyg!.state.doc).map(({ level, text }) => ({ level, text }));
+    if (!this.wysiwyg) return sourceHeadings(this.getMarkdown()).map(({ level, text }) => ({ level, text }));
+    return docHeadings(this.wysiwyg.state.doc).map(({ level, text }) => ({ level, text }));
   }
 
   private activeHeadingIndex(): number {
@@ -355,7 +382,8 @@ export class EditorHost {
       const headings = sourceHeadings(this.source.state.doc.toString());
       return headings.findLastIndex((h) => h.line <= topLine);
     }
-    const view = this.wysiwyg!;
+    const view = this.wysiwyg;
+    if (!view) return -1;
     const headings = docHeadings(view.state.doc);
     let active = -1;
     for (let i = 0; i < headings.length; i++) {
@@ -384,10 +412,11 @@ export class EditorHost {
       const pos = this.source.state.doc.line(heading.line + 1).from;
       this.source.dispatch({
         selection: { anchor: pos },
-        effects: CMView.scrollIntoView(pos, { y: 'start', yMargin: 24 }),
+        effects: cm().EditorView.scrollIntoView(pos, { y: 'start', yMargin: 24 }),
       });
     } else {
-      const view = this.wysiwyg!;
+      const view = this.wysiwyg;
+      if (!view) return;
       const heading = docHeadings(view.state.doc)[index];
       if (!heading) return;
       view.dispatch(view.state.tr.setSelection(TextSelection.near(view.state.doc.resolve(heading.pos + 1))));
@@ -407,10 +436,11 @@ export class EditorHost {
       const target = this.source.state.doc.line(Math.min(Math.max(1, line), this.source.state.doc.lines));
       this.source.dispatch({
         selection: { anchor: target.from, head: target.to },
-        effects: CMView.scrollIntoView(target.from, { y: 'center' }),
+        effects: cm().EditorView.scrollIntoView(target.from, { y: 'center' }),
       });
     } else {
-      const view = this.wysiwyg!;
+      const view = this.wysiwyg;
+      if (!view) return;
       const lines = topLevelLines(this.getMarkdown());
       let index = 0;
       while (index + 1 < lines.length && lines[index + 1]! <= line - 1) index++;
@@ -432,21 +462,23 @@ export class EditorHost {
   /** Sets (or clears, with null) the search. With `jump`, selects the first match after the cursor. */
   setFind(query: FindQuery | null, jump = true): FindResult {
     this.findQuery = query?.text ? query : null;
-    if (this.source) return cmSetFind(this.source, query, jump);
-    return pmSetFind(this.wysiwyg!, query, jump);
+    if (this.source) return cm().cmSetFind(this.source, query, jump);
+    if (!this.wysiwyg) return { count: 0, current: 0, valid: true };
+    return pmSetFind(this.wysiwyg, query, jump);
   }
 
   find(action: FindAction): FindResult {
     if (!this.findQuery) return { count: 0, current: 0, valid: true };
-    if (this.source) return cmFind(this.source, action);
-    return pmFind(this.wysiwyg!, action);
+    if (this.source) return cm().cmFind(this.source, action);
+    if (!this.wysiwyg) return { count: 0, current: 0, valid: true };
+    return pmFind(this.wysiwyg, action);
   }
 
   // ---------- commands & status ----------
 
   exec(id: EditorCommandId): boolean {
     if (this.wysiwyg) return runWysiwygCommand(this.wysiwyg, id, this.options);
-    if (this.source) return runSourceCommand(this.source, id, this.options);
+    if (this.source) return cm().runSourceCommand(this.source, id, this.options);
     return false;
   }
 
@@ -477,7 +509,7 @@ export class EditorHost {
         cursor: { line: line.number, column: head - line.from + 1 },
       };
     }
-    const doc = this.wysiwyg!.state.doc;
+    const doc = this.wysiwyg?.state.doc ?? parseMarkdown(this.getMarkdown());
     const plain = doc.textBetween(0, doc.content.size, '\n', ' ');
     const markdown = this.getMarkdown();
     const lines = markdown ? markdown.replace(/\n$/, '').split('\n').length : 0;
@@ -485,6 +517,7 @@ export class EditorHost {
   }
 
   destroy(): void {
+    this.destroyed = true;
     clearTimeout(this.statusTimer);
     this.unmount();
     this.dom.remove();

@@ -3,6 +3,20 @@
 Elenco per l'utente (tester). Si spunta `[x]` ciò che funziona; per i problemi basta una riga con cosa è
 successo. Dopo i test l'agente aggiorna la colonna "Testata dall'utente" in [STATUS.md](STATUS.md).
 
+## v0.7.0 (M7, prima parte: prestazioni e tastiera)
+
+- [ ] L'app parte e funziona come la 0.6.0 (nessuna finestra bianca, temi, immagini).
+- [ ] Prima volta in modalità sorgente (`Ctrl+/`) dopo l'avvio: si apre subito o quasi (ora CodeMirror si carica
+      in quel momento). Cerca/sostituisci funziona anche lì.
+- [ ] I blocchi di codice sono colorati anche appena aperto un file.
+- [ ] Menu da tastiera: premere e rilasciare `Alt` (o `F10`) apre il menu File; frecce su/giù tra le voci,
+      sinistra/destra tra i menu, `Invio` esegue, `Esc` torna al testo.
+- [ ] Scorrimento fluido in un documento lungo, diagrammi Mermaid e formule come prima (la GPU ora gira nel
+      processo principale di WebView2).
+- [ ] Impostazioni → "Accelerazione hardware" spenta, riavvio: l'app funziona, magari scorre un po' meno fluida.
+      Poi riaccenderla. In Gestione attività la memoria di MarkType (gruppo con i processi WebView2) dovrebbe
+      essere intorno a 180 MB con la GPU, 155 MB senza.
+
 ## v0.6.0 (M6: impostazioni, riga di comando, export)
 
 Installare `MarkType_0.6.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla

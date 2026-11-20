@@ -55,6 +55,8 @@ export class AppSettings {
   language = $state<LanguageSetting>('auto');
   /** Reopen the last folder at startup. */
   restoreFolder = $state(true);
+  /** GPU rendering (Windows; read by the Rust side at startup, applies after a restart). */
+  hardwareAcceleration = $state(true);
   fontSize = $state<number | null>(null);
   pageWidth = $state<number | null>(null);
   exportSettings = $state<ExportSettings>(DEFAULT_EXPORT_SETTINGS);
@@ -62,6 +64,7 @@ export class AppSettings {
   constructor(private readonly prefs: PrefsApi) {
     this.language = loadLanguage(prefs);
     this.restoreFolder = prefs.get<unknown>('restoreFolder', true) !== false;
+    this.hardwareAcceleration = prefs.get<unknown>('hardwareAcceleration', true) !== false;
     const editor = prefs.get<{ fontSize?: unknown; pageWidth?: unknown }>('editor', {});
     this.fontSize = isNumberOrNull(editor.fontSize, FONT_SIZES) ? editor.fontSize : null;
     this.pageWidth = isNumberOrNull(editor.pageWidth, PAGE_WIDTHS) ? editor.pageWidth : null;
@@ -76,6 +79,11 @@ export class AppSettings {
   setRestoreFolder(value: boolean): void {
     this.restoreFolder = value;
     this.prefs.set('restoreFolder', value);
+  }
+
+  setHardwareAcceleration(value: boolean): void {
+    this.hardwareAcceleration = value;
+    this.prefs.set('hardwareAcceleration', value);
   }
 
   setLayout(patch: { fontSize?: number | null; pageWidth?: number | null }): void {

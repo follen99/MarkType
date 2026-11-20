@@ -227,5 +227,7 @@
   "settings.files.themes": "Open the themes folder",
   "settings.invalidFile": "settings.json contains an error and will not be changed until you fix it (settings changed in this session will not be saved):\n{message}",
   "keybindings.error": "keybindings.json is not valid and is ignored:\n{message}",
-  "keybindings.invalid": "keybindings.json: invalid entries ignored: {keys}"
+  "keybindings.invalid": "keybindings.json: invalid entries ignored: {keys}",
+  "settings.hardwareAcceleration": "Hardware acceleration (off uses less memory)",
+  "settings.restart": "Applies at the next start."
 }

@@ -17,6 +17,25 @@ pub fn run() {
         .manage(themes::ThemeWatcher::default())
         .manage(settings::SettingsLock::default())
         .manage(launch::initial_state())
+        // The window is created here, not from tauri.conf.json ("create": false), because its WebView2
+        // flags depend on settings.json (hardware acceleration).
+        .setup(|app| {
+            let config = app
+                .config()
+                .app
+                .windows
+                .iter()
+                .find(|w| w.label == "main")
+                .cloned()
+                .ok_or("missing main window config")?;
+            let builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
+            #[cfg(windows)]
+            let builder = builder.additional_browser_args(&settings::webview_args(
+                settings::hardware_acceleration(app.handle()),
+            ));
+            builder.build()?;
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![
             app::app_info,
             fs::read_text_file,
