@@ -12,12 +12,12 @@
 | M0 Fondamenta (monorepo, Tauri, CI) | ✅ completata | `4a677c9` | sì |
 | M1 Nucleo editor → alpha 1 | ✅ completata | `9a1ef18` | sì, "funziona tutto" |
 | M2 Cartelle, schede, sidebar → alpha 2 | ✅ completata | `8288b22` | sì, "funziona tutto bene" |
-| M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | **no, in attesa di test** |
-| M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
-| M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | **no, in attesa di test** |
-| M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | **no, in attesa di test** |
+| M3 Rendering avanzato → alpha 3 | ✅ completata, rilasciata come `v0.3.0` | `c8efd1f` | sì (nessun problema segnalato) |
+| M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | sì (nessun problema segnalato) |
+| M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | sì (nessun problema segnalato) |
+| M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | sì (nessun problema segnalato) |
 | M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | sì, feedback → M8 |
-| M8 Area di lavoro (feedback v0.7.0) | ✅ completata, rilasciata come `v0.8.0` | branch `m8-workspace` | **no, in attesa di test** |
+| M8 Area di lavoro (feedback v0.7.0) | ✅ completata, rilasciata come `v0.8.0` | branch `m8-workspace` | sì, "funziona tutto" (2026-11-20) |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -119,7 +119,7 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
 ## 2. Prossimo passo: M7 Rifinitura → v1.0
 
 Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
-1. Aspettare il feedback dell'utente su v0.8.0 e M3–M6 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere i problemi trovati.
+1. Fatto: l'utente ha provato fino alla v0.8.0 senza segnalare problemi (2026-11-20).
 2. Fatto in `v0.7.0`: RAM WebView2, CodeMirror lazy, menu da tastiera, README. Da fare: documenti da 10k righe
    (misurare digitazione e apertura), contrasto colori, screenshot nel README.
 3. PDF diretto senza dialog (WebView2 `PrintToPdf` via `webview2-com`, `WKWebView.createPDF`), header/footer.
