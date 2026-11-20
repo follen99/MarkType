@@ -82,6 +82,29 @@ l'installazione con l'associazione dei file e il menu contestuale, macOS e Linux
       percorso diventa relativo.
 - [ ] Incollare da una pagina web e da Word: diventa Markdown pulito. In un blocco di codice resta testo.
 
-## v0.3.0 e v0.4.0
+## v0.4.0 (M4: temi), ancora da testare
 
-Vedi le righe "Da testare" di M3 e M4 in [ROADMAP.md](ROADMAP.md).
+- [ ] Menu Temi: Chiaro, Carta, Scuro, Formal Dark Pro cambiano subito, senza riavvio.
+- [ ] "Segui il tema del sistema": cambiando il tema di Windows (chiaro/scuro) MarkType segue, usando il tema
+      chiaro e quello scuro scelti nel menu.
+- [ ] Scaricare 2-3 temi dalla galleria di Typora (https://theme.typora.io), copiarli (il `.css` e la sua
+      cartella, se c'è) con Temi → "Apri la cartella dei temi": compaiono nel menu e si applicano, font compresi.
+- [ ] Modificare un tema mentre MarkType è aperto: la modifica si vede appena si salva il file.
+- [ ] `base.user.css` nella cartella dei temi (es. `#write { max-width: 1000px; }`) vale per tutti i temi.
+- [ ] Barra del titolo, menu e schede restano leggibili con ogni tema.
+
+## v0.3.0 (M3: rendering avanzato), ancora da testare
+
+- [ ] Blocchi di codice colorati (es. ` ```python `); l'etichetta del linguaggio in alto a destra si può
+      modificare.
+- [ ] Diagrammi Mermaid (` ```mermaid `): si vede il disegno, cliccandoci compare il codice.
+- [ ] Formule: `$x^2$` nel testo e blocchi `$$` (`Ctrl+Shift+M`); cliccando si modifica la sorgente.
+- [ ] Tabelle: scrivere `| a | b |` e premere Invio crea la tabella; la barra degli strumenti allinea, aggiunge
+      ed elimina righe e colonne; `Ctrl+Invio` aggiunge una riga.
+- [ ] Liste di attività `- [ ]` (clic sulla casella), barrato `~~x~~`, evidenziato `==x==` (`Ctrl+Shift+H`),
+      emoji `:smile:`.
+- [ ] Note a piè di pagina `[^1]`, front matter YAML in cima, `[toc]` (indice cliccabile e aggiornato).
+- [ ] Alert GitHub: `> [!NOTE]` + Invio, colori diversi per NOTE/TIP/WARNING…
+- [ ] HTML nel testo: `<kbd>Ctrl</kbd>`, `<sup>`, `<sub>`, blocchi HTML visualizzati.
+- [ ] Un documento tecnico vero, con codice, diagrammi e formule: aprirlo, modificarlo, salvarlo e riaprirlo
+      senza perdere nulla (anche `samples/showcase.md` del progetto).
