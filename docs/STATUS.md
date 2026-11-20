@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-20**, dopo la release `v0.8.0` (beta 3, M8: area di lavoro, dal feedback sulla v0.7.0).
+> Ultimo aggiornamento: **2026-11-20**, dopo la release `v0.9.0` (beta 4, M9: PDF diretto, MSI, contrasto, documenti lunghi).
 
 ## 1. Dove siamo
 
@@ -18,6 +18,7 @@
 | M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | sì (nessun problema segnalato) |
 | M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | sì, feedback → M8 |
 | M8 Area di lavoro (feedback v0.7.0) | ✅ completata, rilasciata come `v0.8.0` | branch `m8-workspace` | sì, "funziona tutto" (2026-11-20) |
+| M9 Rifinitura (seconda parte di M7) | ✅ completata, rilasciata come `v0.9.0` | branch `m9-polish` | **no, in attesa di test** |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -116,14 +117,32 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
   `images.removeFile` (`ask`/`trash`/`keep`). **La modalità sorgente non è coperta** (CodeMirror non segnala le
   immagini tolte). `Dialogs.ask()` = confirm con casella opzionale, restituisce `{ id, checked }`.
 
-## 2. Prossimo passo: M7 Rifinitura → v1.0
+### Come sono fatti PDF, MSI e prestazioni (M9 / v0.9.0)
+- **PDF diretto (Windows)**: Rust `commands/pdf.rs` `print_pdf` scrive la pagina HTML (immagini e asset del tema
+  incorporati) in un file temporaneo, la apre in una finestra nascosta (`WebviewWindowBuilder`, URL `file://`)
+  e al `PageLoadEvent::Finished` (+600 ms per font e immagini) chiama `ICoreWebView2_7::PrintToPdf` via
+  `webview2-com` (stesse versioni di wry: 0.39 / windows 0.62; aggiornarle insieme a Tauri). Ogni finestra deve
+  usare gli stessi flag WebView2 della prima: `settings::startup_webview_args`. Frontend: `ExportApi.printPdf`
+  (null su web, macOS, Linux → resta il dialog di stampa), impostazione `export.pdfHeaderFooter` (titolo = il
+  `<title>` della pagina, data, numeri di pagina: intestazione di Chromium).
+- **MSI**: `windows/context-menu.wxs` (frammento WiX in `bundle.windows.wix`), chiavi in HKLM perché l'MSI è
+  per tutti gli utenti; `[#Path]` = l'exe installato; etichetta italiana se `UserLanguageID = 1040`.
+- **Contrasto**: `--control-text-color` dei temi integrati ≥ 4,5:1 su sfondo e sidebar; testo dei pulsanti
+  principali = `--mt-on-primary-color` (nuova variabile, [THEMES.md](THEMES.md)).
+- **Documenti lunghi** (misurati con 10k righe, 1000 blocchi di codice, build di sviluppo): apertura ~1 s
+  (parse ~0,4 s, vista ~0,4 s, layout ~0,2 s), digitazione ~15 ms per tasto (era ~40). `render/highlight.ts`
+  aggiorna solo i blocchi di codice toccati (decorazioni mappate); `EditorHost.status()` conta le righe per
+  blocco con cache (`countLines`, `warmLineCache` in background per documenti > 50k caratteri) invece di
+  serializzare tutto (~200 ms dopo ogni pausa). Provato e scartato: `content-visibility: auto` sui blocchi
+  (nessun guadagno con il blocco modificato visibile, scrollbar e posizioni meno precise).
+
+## 2. Prossimo passo: v1.0
 
 Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
-1. Fatto: l'utente ha provato fino alla v0.8.0 senza segnalare problemi (2026-11-20).
-2. Fatto in `v0.7.0`: RAM WebView2, CodeMirror lazy, menu da tastiera, README. Da fare: documenti da 10k righe
-   (misurare digitazione e apertura), contrasto colori, screenshot nel README.
-3. PDF diretto senza dialog (WebView2 `PrintToPdf` via `webview2-com`, `WKWebView.createPDF`), header/footer.
-4. Accessibilità di base, menu nativo su macOS, README con screenshot, release `v1.0.0`.
+1. Aspettare il feedback dell'utente sulla v0.9.0 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere.
+2. Screenshot nel README, CHANGELOG, release `v1.0.0`.
+3. Dopo v1.0 o se l'utente usa un Mac: menu nativo su macOS, PDF diretto su macOS (`WKWebView.createPDF`).
+4. RAM ancora sopra il target (181 MB, 156 senza GPU): `MemoryUsageTargetLevel` di WebView2 da provare.
 
 ## 3. Mappa del codice
 
@@ -242,7 +261,7 @@ Le funzioni su cartelle e file nativi si provano solo nell'app desktop (le prova
 | Albero file aggiornato solo al focus della finestra (nessun watcher) | `notify` è ora una dipendenza (M4): riusarlo |
 | Note a piè di pagina: niente popup/modifica visuale | dopo v1.0 |
 | Apice/pedice `^x^` / `~x~` (conflitto con il barrato `~x~` di GFM) | solo come opzione, dopo v1.0 |
-| PDF senza dialog di stampa; header/footer personalizzati | M7 |
+| PDF senza dialog su macOS/Linux (ora solo Windows); header/footer personalizzabili oltre a quelli di Chromium | dopo v1.0 |
 | Export su macOS: `print()` in WKWebView non verificato | da provare su un Mac |
 | Modifiche manuali a `settings.json` applicate solo al riavvio (nessun watcher) | dopo v1.0 |
 | Installer non firmati | dopo v1.0 (SPEC §17) |

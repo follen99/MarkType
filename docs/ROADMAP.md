@@ -103,14 +103,14 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - Da testare: installazione pulita su Windows, macOS e Linux; export; doppio clic su un `.md`.
 
 ## M7: Rifinitura → **v1.0**
-- [ ] Verifica dei target di prestazione (installer < 15 MB, avvio < 1 s, RAM < 150 MB, 10k righe)
+- [x] Verifica dei target di prestazione: installer 4,6 MB, avvio < 1 s a caldo, documento da 10k righe (apertura ~1 s, ~15 ms per tasto) (`v0.9.0`); RAM 181 MB (156 senza GPU), sopra il target di 150
 - [x] Ridurre la RAM di WebView2: 221 → 181 MB (GPU nel processo browser), 156 MB con l'accelerazione hardware spenta (`v0.7.0`)
 - [x] Caricare CodeMirror solo al primo passaggio in modalità sorgente: bundle iniziale 330 → 210 KB gzip (`v0.7.0`)
 - [ ] Menu nativo nella barra di sistema su macOS
-- [ ] PDF diretto senza dialog di stampa (WebView2 `PrintToPdf`, `WKWebView.createPDF`), header/footer
-- [ ] Menu contestuale "Apri con MarkType" anche nell'installer MSI
+- [x] PDF diretto senza dialog di stampa su Windows (WebView2 `PrintToPdf`), intestazione e piè di pagina (`v0.9.0`); macOS (`WKWebView.createPDF`) da fare
+- [x] Menu contestuale "Apri con MarkType" anche nell'installer MSI (`v0.9.0`)
 - [x] Navigazione da tastiera nei menu (`Alt`/`F10`, frecce) (`v0.7.0`)
-- [ ] Contrasto dei colori dell'interfaccia
+- [x] Contrasto dei colori dell'interfaccia: almeno 4,5:1 nei temi integrati (`v0.9.0`)
 - [x] README con guida all'installazione per OS non firmati (`v0.7.0`)
 - [ ] Screenshot nel README
 - [ ] CHANGELOG e release `v1.0.0`

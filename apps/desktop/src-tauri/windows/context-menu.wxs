@@ -2,28 +2,28 @@
 <!--
   MSI installer fragment (tauri.conf.json > bundle.windows.wix): "Open with MarkType" in the Explorer
   context menu of folders, folder backgrounds and Markdown files, like windows/hooks.nsh for the NSIS
-  installer. The MSI installs for all users, so the keys go under HKLM\Software\Classes. [#Path] is the
-  installed marktype.exe (File Id="Path" in Tauri's main.wxs).
+  installer. The MSI installs for all users, so the keys go under HKLM\Software\Classes. The exe is
+  [INSTALLDIR]marktype.exe: [#Path] (its File entry) belongs to another feature and fails ICE69.
 -->
 <Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
   <Fragment>
     <DirectoryRef Id="INSTALLDIR">
       <Component Id="MarkTypeContextMenu" Guid="E0C8D724-E80B-4739-B35E-3CAB63CD4513">
         <RegistryKey Root="HKLM" Key="Software\Classes\Directory\shell\MarkType" ForceDeleteOnUninstall="yes">
-          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" KeyPath="yes" />
-          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot;,0" KeyPath="yes" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot; &quot;%1&quot;" />
         </RegistryKey>
         <RegistryKey Root="HKLM" Key="Software\Classes\Directory\Background\shell\MarkType" ForceDeleteOnUninstall="yes">
-          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
-          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%V&quot;" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot; &quot;%V&quot;" />
         </RegistryKey>
         <RegistryKey Root="HKLM" Key="Software\Classes\SystemFileAssociations\.md\shell\MarkType" ForceDeleteOnUninstall="yes">
-          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
-          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot; &quot;%1&quot;" />
         </RegistryKey>
         <RegistryKey Root="HKLM" Key="Software\Classes\SystemFileAssociations\.markdown\shell\MarkType" ForceDeleteOnUninstall="yes">
-          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
-          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[INSTALLDIR]marktype.exe&quot; &quot;%1&quot;" />
         </RegistryKey>
       </Component>
       <!-- The label: Italian on Italian Windows (1040), English otherwise. -->
