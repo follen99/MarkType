@@ -5,6 +5,15 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [1.0.0] - 2026-11-20
+
+First stable release: everything from the betas (0.1–0.9), tested on Windows 11.
+
+### Changed
+- Source mode shows Markdown exactly as typed: no font ligatures (Cascadia Code drew table rows like
+  `|:---|` as one line).
+- README with screenshots; the MSI also has the Explorer context menu (since 0.9.0).
+
 ## [0.9.0] - 2026-11-20 (beta 4)
 
 ### Added

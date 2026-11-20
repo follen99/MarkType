@@ -293,6 +293,8 @@
   font-family: var(--monospace);
   font-size: calc(var(--base-font-size) * 0.9);
   line-height: 1.6;
+  /* Show the markdown as typed: fonts like Cascadia Code draw `|:---|` table rows as one line. */
+  font-variant-ligatures: none;
 }
 
 #typora-source .cm-content {

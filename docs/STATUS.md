@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-20**, dopo la release `v0.9.0` (beta 4, M9: PDF diretto, MSI, contrasto, documenti lunghi).
+> Ultimo aggiornamento: **2026-11-20**, dopo la release `v1.0.0` (prima versione stabile).
 
 ## 1. Dove siamo
 
@@ -18,7 +18,8 @@
 | M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | sì (nessun problema segnalato) |
 | M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | sì, feedback → M8 |
 | M8 Area di lavoro (feedback v0.7.0) | ✅ completata, rilasciata come `v0.8.0` | branch `m8-workspace` | sì, "funziona tutto" (2026-11-20) |
-| M9 Rifinitura (seconda parte di M7) | ✅ completata, rilasciata come `v0.9.0` | branch `m9-polish` | **no, in attesa di test** |
+| M9 Rifinitura (seconda parte di M7) | ✅ completata, rilasciata come `v0.9.0` | branch `m9-polish` | sì (nessun problema segnalato) |
+| **v1.0** (screenshot, README, release stabile) | ✅ rilasciata come `v1.0.0` | branch `m10-release` | **no, in attesa di test** |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -136,11 +137,12 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
   serializzare tutto (~200 ms dopo ogni pausa). Provato e scartato: `content-visibility: auto` sui blocchi
   (nessun guadagno con il blocco modificato visibile, scrollbar e posizioni meno precise).
 
-## 2. Prossimo passo: v1.0
+## 2. Prossimo passo: dopo la v1.0
 
-Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
-1. Aspettare il feedback dell'utente sulla v0.9.0 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere.
-2. Screenshot nel README, CHANGELOG, release `v1.0.0`.
+La v1.0 è uscita. Da qui le release sono stabili (non più pre-release): correzioni in `1.0.x`, novità in `1.x.0`.
+1. Aspettare il feedback dell'utente sulla v1.0.0 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere.
+2. Screenshot del README: `node scripts/screenshots.mjs` dopo una build release, con MarkType chiuso (come lo
+   smoke test: un MarkType già aperto riceve gli avvii al posto dell'app di prova, per l'istanza singola).
 3. Dopo v1.0 o se l'utente usa un Mac: menu nativo su macOS, PDF diretto su macOS (`WKWebView.createPDF`).
 4. RAM ancora sopra il target (181 MB, 156 senza GPU): `MemoryUsageTargetLevel` di WebView2 da provare.
 

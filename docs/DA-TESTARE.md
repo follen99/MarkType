@@ -3,6 +3,17 @@
 Elenco per l'utente (tester). Si spunta `[x]` ciò che funziona; per i problemi basta una riga con cosa è
 successo. Dopo i test l'agente aggiorna la colonna "Testata dall'utente" in [STATUS.md](STATUS.md).
 
+## v1.0.0 (prima versione stabile)
+
+Installare `MarkType_1.0.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla
+bozza `v1.0.0`; questa volta non è una "pre-release").
+
+- [ ] L'app si aggiorna sopra la 0.9.0 e funziona come prima: cartella e schede tornano, impostazioni e temi
+      restano.
+- [ ] Modalità sorgente (`Ctrl+/`): le righe delle tabelle come `|:---|---:|` si vedono carattere per carattere
+      (prima alcuni caratteri si univano in una linea).
+- [ ] La pagina GitHub del progetto mostra gli screenshot in cima al README.
+
 ## v0.9.0 (PDF diretto, installer MSI, contrasto, documenti lunghi)
 
 Installare `MarkType_0.9.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla
