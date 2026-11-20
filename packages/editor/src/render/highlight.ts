@@ -1,7 +1,7 @@
 import type { Language } from '@codemirror/language';
 import { highlightTree, tagHighlighter, tags as t } from '@lezer/highlight';
 import type { Node as PMNode } from 'prosemirror-model';
-import { Plugin, PluginKey } from 'prosemirror-state';
+import { Plugin, PluginKey, type Transaction } from 'prosemirror-state';
 import { Decoration, DecorationSet } from 'prosemirror-view';
 
 /** Token classes of CodeMirror 5, which Typora themes style under `.cm-s-inner`. */
@@ -102,25 +102,64 @@ const spanCache = new WeakMap<PMNode, Span[]>();
 const highlightKey = new PluginKey<DecorationSet>('mt-code-highlight');
 const NO_HIGHLIGHT = new Set(['mermaid', 'math', 'text', 'plain', 'plaintext', 'txt']);
 
-function buildDecorations(doc: PMNode, onLoad: () => void): DecorationSet {
-  const decorations: Decoration[] = [];
-  doc.descendants((node, pos) => {
+/** Decorations of one code block at `pos` (none until its language is loaded). */
+function blockDecorations(node: PMNode, pos: number, onLoad: () => void): Decoration[] {
+  const lang = (node.attrs.language as string).toLowerCase();
+  if (!lang || NO_HIGHLIGHT.has(lang) || !node.textContent) return [];
+  const language = languageFor(lang, onLoad);
+  if (!language) return [];
+  let spans = spanCache.get(node);
+  if (!spans) {
+    spans = highlightCode(language, node.textContent);
+    spanCache.set(node, spans);
+  }
+  return spans.map((span) => Decoration.inline(pos + 1 + span.from, pos + 1 + span.to, { class: span.cls }));
+}
+
+/** Calls `f` for every code block between `from` and `to` (also inside lists and quotes). */
+function eachCodeBlock(doc: PMNode, from: number, to: number, f: (node: PMNode, pos: number) => void) {
+  doc.nodesBetween(from, to, (node, pos) => {
     if (node.type.name !== 'code_block') return node.isBlock && !node.isTextblock;
-    const lang = (node.attrs.language as string).toLowerCase();
-    if (!lang || NO_HIGHLIGHT.has(lang) || !node.textContent) return false;
-    const language = languageFor(lang, onLoad);
-    if (!language) return false;
-    let spans = spanCache.get(node);
-    if (!spans) {
-      spans = highlightCode(language, node.textContent);
-      spanCache.set(node, spans);
-    }
-    for (const span of spans) {
-      decorations.push(Decoration.inline(pos + 1 + span.from, pos + 1 + span.to, { class: span.cls }));
-    }
+    f(node, pos);
     return false;
   });
+}
+
+function buildDecorations(doc: PMNode, onLoad: () => void): DecorationSet {
+  const decorations: Decoration[] = [];
+  eachCodeBlock(doc, 0, doc.content.size, (node, pos) =>
+    decorations.push(...blockDecorations(node, pos, onLoad)),
+  );
   return DecorationSet.create(doc, decorations);
+}
+
+/** Ranges of `tr.doc` touched by the transaction. */
+function changedRanges(tr: Transaction): [number, number][] {
+  const ranges: [number, number][] = [];
+  tr.steps.forEach((step, index) => {
+    const after = tr.mapping.slice(index + 1);
+    step.getMap().forEach((_oldStart, _oldEnd, start, end) => {
+      ranges.push([after.map(start, -1), after.map(end, 1)]);
+    });
+  });
+  return ranges;
+}
+
+/**
+ * After an edit only the code blocks the edit touched are highlighted again; the others keep their
+ * (mapped) decorations. Rebuilding everything made typing slow in long documents (10k lines: ~17 ms per
+ * key with 1000 code blocks).
+ */
+function updateDecorations(tr: Transaction, set: DecorationSet, onLoad: () => void): DecorationSet {
+  let next = set.map(tr.mapping, tr.doc);
+  const size = tr.doc.content.size;
+  for (const [start, end] of changedRanges(tr)) {
+    eachCodeBlock(tr.doc, Math.max(0, start - 1), Math.min(size, end + 1), (node, pos) => {
+      next = next.remove(next.find(pos, pos + node.nodeSize));
+      next = next.add(tr.doc, blockDecorations(node, pos, onLoad));
+    });
+  }
+  return next;
 }
 
 /** Syntax highlighting of fenced code blocks, as decorations (no nested editor). */
@@ -130,8 +169,11 @@ export function codeHighlightPlugin(): Plugin<DecorationSet> {
     key: highlightKey,
     state: {
       init: (_config, state) => buildDecorations(state.doc, () => refresh()),
-      apply: (tr, value, _old, state) =>
-        tr.docChanged || tr.getMeta(highlightKey) ? buildDecorations(state.doc, () => refresh()) : value,
+      apply: (tr, value, _old, state) => {
+        // A language finished loading: highlight everything again.
+        if (tr.getMeta(highlightKey)) return buildDecorations(state.doc, () => refresh());
+        return tr.docChanged ? updateDecorations(tr, value, () => refresh()) : value;
+      },
     },
     view(view) {
       refresh = () => {

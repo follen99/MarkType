@@ -249,6 +249,16 @@ export interface ExportApi {
   open: ((path: string) => Promise<void>) | null;
   /** null where external programs cannot run (web). */
   pandoc: PandocApi | null;
+  /** Writes a PDF of a standalone HTML page without the print dialog; null where unsupported (print dialog). */
+  printPdf: ((job: PdfJob) => Promise<void>) | null;
+}
+
+export interface PdfJob {
+  html: string;
+  output: string;
+  /** Title, date and page numbers at the top and bottom of each page. */
+  headerFooter: boolean;
+  title: string;
 }
 
 /**

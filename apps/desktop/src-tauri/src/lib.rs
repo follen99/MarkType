@@ -3,7 +3,7 @@
 
 mod commands;
 
-use commands::{app, drafts, export, folder, fs, images, launch, search, settings, themes};
+use commands::{app, drafts, export, folder, fs, images, launch, pdf, search, settings, themes};
 
 /// Builds and runs the Tauri application.
 pub fn run() {
@@ -30,9 +30,8 @@ pub fn run() {
                 .ok_or("missing main window config")?;
             let builder = tauri::WebviewWindowBuilder::from_config(app.handle(), &config)?;
             #[cfg(windows)]
-            let builder = builder.additional_browser_args(&settings::webview_args(
-                settings::hardware_acceleration(app.handle()),
-            ));
+            let builder =
+                builder.additional_browser_args(settings::startup_webview_args(app.handle()));
             builder.build()?;
             Ok(())
         })
@@ -69,6 +68,7 @@ pub fn run() {
             export::pandoc_version,
             export::pandoc_export,
             export::open_export,
+            pdf::print_pdf,
         ])
         .build(tauri::generate_context!())
         .expect("error while building MarkType");

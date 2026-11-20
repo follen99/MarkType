@@ -3,6 +3,33 @@
 Elenco per l'utente (tester). Si spunta `[x]` ciò che funziona; per i problemi basta una riga con cosa è
 successo. Dopo i test l'agente aggiorna la colonna "Testata dall'utente" in [STATUS.md](STATUS.md).
 
+## v0.9.0 (PDF diretto, installer MSI, contrasto, documenti lunghi)
+
+Installare `MarkType_0.9.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla
+bozza `v0.9.0`).
+
+**PDF**
+- [ ] File → Esporta → PDF: chiede dove salvare e crea il file **senza** la finestra di stampa. Poi propone di
+      aprirlo. Provare con un documento con immagini, tabelle, codice, formule e un diagramma Mermaid: tutto
+      deve comparire nel PDF, con i colori del tema.
+- [ ] Impostazioni → Export → "PDF: intestazione e piè di pagina": acceso, in alto su ogni pagina ci sono
+      data e titolo, in basso il numero di pagina. Spento (predefinito): pagine pulite.
+- [ ] Un documento lungo (decine di pagine) si esporta in pochi secondi.
+
+**Installer MSI** (facoltativo, chi usa l'MSI invece dell'`.exe`)
+- [ ] Disinstallare la versione `.exe`, installare `MarkType_0.9.0_x64_en-US.msi` (chiede i
+      permessi di amministratore). Tasto destro su una cartella, sullo sfondo di una cartella e su un file
+      `.md`: c'è "Apri con MarkType" (su Windows 11 sotto "Mostra altre opzioni") e funziona.
+- [ ] Disinstallando l'MSI la voce sparisce.
+
+**Colori**
+- [ ] Nei temi MarkType Light, Dark e Paper i testi grigi (sidebar, menu, barra di stato, note delle
+      impostazioni) si leggono meglio. Nel tema Dark il testo dei pulsanti blu (es. "Chiudi") è scuro.
+
+**Documenti lunghi**
+- [ ] Aprire un documento molto lungo (migliaia di righe, molti blocchi di codice) e scrivere in mezzo: la
+      scrittura resta fluida, senza scatti ogni volta che ci si ferma.
+
 ## v0.8.0 (area di lavoro: cartelle recenti, sessione, immagini, schede)
 
 Installare `MarkType_0.8.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla

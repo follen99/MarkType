@@ -72,6 +72,10 @@ export interface EditorHostOptions {
 export type { FindQuery, FindResult, FindAction, ImageRef, SaveImage };
 
 const STATUS_DELAY = 250;
+/** Documents from this size (characters) get their line cache filled in the background. */
+const LONG_DOCUMENT = 50_000;
+/** Top-level blocks serialized per background step (~10 ms). */
+const WARM_CHUNK = 150;
 const ATX_HEADING = /^ {0,3}(#{1,6})(?:[ \t]+(.*?))?(?:[ \t]+#+)?[ \t]*$/;
 const FENCE = /^ {0,3}(`{3,}|~{3,})/;
 
@@ -91,6 +95,12 @@ function sourceHeadings(text: string): (OutlineItem & { line: number })[] {
     if (m) out.push({ level: m[1]!.length, text: (m[2] ?? '').replace(/[*_`~]/g, ''), line: index });
   });
   return out;
+}
+
+/** Lines of markdown text, without the trailing newline of the file. */
+function textLines(text: string): number {
+  const trimmed = text.replace(/\n$/, '');
+  return trimmed ? trimmed.split('\n').length : 0;
 }
 
 /** Headings of a document with their position. */
@@ -134,6 +144,8 @@ export class EditorHost {
   private pendingText: string | null = null;
   private mountToken = 0;
   private destroyed = false;
+  private blockLines = new WeakMap<PMNode, number>();
+  private warmTimer: ReturnType<typeof setTimeout> | undefined;
 
   constructor(parent: HTMLElement, options: EditorHostOptions) {
     this.options = options;
@@ -262,6 +274,7 @@ export class EditorHost {
         },
       });
       pane.addEventListener('scroll', this.onScroll, { passive: true });
+      this.warmLineCache();
     } else if (!sourceModule) {
       // First use of source mode: load CodeMirror, then mount (unless the mode changed meanwhile).
       this.pendingText = text;
@@ -521,14 +534,52 @@ export class EditorHost {
     }
     const doc = this.wysiwyg?.state.doc ?? parseMarkdown(this.getMarkdown());
     const plain = doc.textBetween(0, doc.content.size, '\n', ' ');
-    const markdown = this.getMarkdown();
-    const lines = markdown ? markdown.replace(/\n$/, '').split('\n').length : 0;
+    const lines = doc.eq(this.cleanDoc) ? textLines(this.cleanSource) : this.countLines(doc);
     return { ...computeStats(plain, lines), mode: this._mode, cursor: null };
+  }
+
+  /**
+   * Markdown lines of an edited document without serializing all of it (~200 ms at 10k lines, after
+   * every pause in typing): each top-level block is serialized once and its line count cached; blocks
+   * are separated by one blank line, as remark writes them.
+   */
+  /** Fills the line cache of a long document in small idle chunks, so the first edit does not stall. */
+  private warmLineCache(): void {
+    if (this.cleanSource.length < LONG_DOCUMENT) return;
+    clearTimeout(this.warmTimer);
+    let index = 0;
+    const step = () => {
+      // Edits keep the untouched blocks (same nodes), so warming goes on with the current document.
+      const doc = this.wysiwyg?.state.doc;
+      if (this.destroyed || !doc) return;
+      const end = Math.min(doc.childCount, index + WARM_CHUNK);
+      for (; index < end; index++) {
+        const child = doc.child(index);
+        if (!this.blockLines.has(child))
+          this.blockLines.set(child, textLines(serializeMarkdown(doc.type.create(null, child), this.style)));
+      }
+      if (index < doc.childCount) this.warmTimer = setTimeout(step, 16);
+    };
+    this.warmTimer = setTimeout(step, 1000);
+  }
+
+  private countLines(doc: PMNode): number {
+    let total = 0;
+    doc.forEach((child) => {
+      let lines = this.blockLines.get(child);
+      if (lines === undefined) {
+        lines = textLines(serializeMarkdown(doc.type.create(null, child), this.style));
+        this.blockLines.set(child, lines);
+      }
+      total += lines;
+    });
+    return total + Math.max(0, doc.childCount - 1);
   }
 
   destroy(): void {
     this.destroyed = true;
     clearTimeout(this.statusTimer);
+    clearTimeout(this.warmTimer);
     this.unmount();
     this.dom.remove();
   }

@@ -139,7 +139,6 @@
   font-weight: 600;
   letter-spacing: 0.02em;
   text-transform: uppercase;
-  opacity: 0.8;
 }
 
 .mt-context-menu {
@@ -802,7 +801,6 @@
 .mt-settings-note {
   margin: 0 0 8px;
   font-size: 12px;
-  opacity: 0.75;
   color: var(--control-text-color);
 }
 

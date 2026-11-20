@@ -5,6 +5,23 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.9.0] - 2026-11-20 (beta 4)
+
+### Added
+- PDF export on Windows writes the file directly (you choose where to save it), without the print dialog.
+  Settings → Export → "PDF: header and footer" adds the title, the date and page numbers. macOS and Linux
+  keep the print dialog.
+- The MSI installer also adds "Open with MarkType" to the Explorer context menu (folders, folder
+  background, Markdown files), like the `.exe` installer.
+
+### Changed
+- Better contrast of secondary text (sidebar, menus, status bar, settings notes) and of the main buttons in
+  the built-in themes (at least 4.5:1). New theme variable `--mt-on-primary-color` for the text on main
+  buttons.
+- Faster typing in long documents: code blocks are highlighted again only where you type (a 10,000-line
+  document with 1,000 code blocks went from ~40 ms to ~15 ms per key), and the line count in the status bar
+  no longer re-reads the whole document after every pause (~200 ms → ~2 ms).
+
 ## [0.8.0] - 2026-11-20 (beta 3)
 
 ### Added

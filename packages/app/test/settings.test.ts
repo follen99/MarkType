@@ -90,15 +90,22 @@ describe('app settings', () => {
   });
 
   it('ignores invalid stored values', () => {
-    const prefs = memoryPrefs({ language: 'klingon', export: { embedImages: 'yes', pandocPath: 3 } }, null);
+    const prefs = memoryPrefs(
+      { language: 'klingon', export: { embedImages: 'yes', pandocPath: 3, pdfHeaderFooter: 1 } },
+      null,
+    );
     expect(loadLanguage(prefs)).toBe('auto');
-    expect(loadExportSettings(prefs)).toEqual({ embedImages: false, pandocPath: '' });
+    expect(loadExportSettings(prefs)).toEqual({ embedImages: false, pandocPath: '', pdfHeaderFooter: false });
     const good = memoryPrefs(
-      { language: 'it', export: { embedImages: true, pandocPath: 'C:/p/pandoc.exe' } },
+      { language: 'it', export: { embedImages: true, pandocPath: 'C:/p/pandoc.exe', pdfHeaderFooter: true } },
       null,
     );
     expect(loadLanguage(good)).toBe('it');
-    expect(loadExportSettings(good)).toEqual({ embedImages: true, pandocPath: 'C:/p/pandoc.exe' });
+    expect(loadExportSettings(good)).toEqual({
+      embedImages: true,
+      pandocPath: 'C:/p/pandoc.exe',
+      pdfHeaderFooter: true,
+    });
   });
 });
 

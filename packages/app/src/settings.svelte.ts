@@ -13,9 +13,15 @@ export interface ExportSettings {
   embedImages: boolean;
   /** Pandoc program; empty = `pandoc` from PATH. */
   pandocPath: string;
+  /** PDF: title, date and page numbers at the top and bottom of each page. */
+  pdfHeaderFooter: boolean;
 }
 
-export const DEFAULT_EXPORT_SETTINGS: ExportSettings = { embedImages: false, pandocPath: '' };
+export const DEFAULT_EXPORT_SETTINGS: ExportSettings = {
+  embedImages: false,
+  pandocPath: '',
+  pdfHeaderFooter: false,
+};
 
 /** `null` = what the theme says. */
 export const FONT_SIZES = [null, 13, 14, 15, 16, 17, 18, 20, 22] as const;
@@ -32,6 +38,7 @@ export function loadExportSettings(prefs: PrefsApi): ExportSettings {
   return {
     embedImages: stored.embedImages === true,
     pandocPath: typeof stored.pandocPath === 'string' ? stored.pandocPath : '',
+    pdfHeaderFooter: stored.pdfHeaderFooter === true,
   };
 }
 

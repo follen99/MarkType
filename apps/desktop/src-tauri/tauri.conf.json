@@ -64,6 +64,10 @@
       "nsis": {
         "installMode": "currentUser",
         "installerHooks": "./windows/hooks.nsh"
+      },
+      "wix": {
+        "fragmentPaths": ["./windows/context-menu.wxs"],
+        "componentGroupRefs": ["MarkTypeContextMenuGroup"]
       }
     }
   }
