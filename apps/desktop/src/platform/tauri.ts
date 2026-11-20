@@ -171,6 +171,7 @@ export async function createTauriPlatform(): Promise<Platform> {
       rename: (path, newName) => invoke<string>('rename_path', { path, newName }),
       move: (path, targetDir) => invoke<string>('move_path', { path, targetDir }),
       trash: (path) => invoke('trash_path', { path }),
+      exists: (path) => invoke<'file' | 'dir' | null>('path_kind', { path }).catch(() => null),
       fileRef,
     },
     drafts: {

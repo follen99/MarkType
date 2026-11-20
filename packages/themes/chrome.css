@@ -145,6 +145,44 @@
 .mt-context-menu {
   position: fixed;
   min-width: 200px;
+  max-width: min(460px, calc(100vw - 16px));
+}
+
+.mt-menu-item:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.mt-menu-item:disabled:hover {
+  background: transparent;
+}
+
+.mt-menu-detail {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--control-text-color);
+  font-size: 11.5px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  direction: rtl;
+}
+
+.mt-context-menu .mt-menu-label {
+  flex: none;
+}
+
+/* Quick actions at the bottom of the sidebar. */
+.mt-sidebar-footer {
+  display: flex;
+  flex: none;
+  gap: 2px;
+  padding: 4px 6px;
+  border-top: var(--window-border);
+}
+
+.mt-sidebar-footer .mt-icon-button {
+  width: 28px;
+  height: 26px;
 }
 
 /* ---------- Sidebar (Typora-compatible ids and classes) ---------- */

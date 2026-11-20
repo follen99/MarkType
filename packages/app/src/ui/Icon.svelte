@@ -17,6 +17,7 @@
     arrowDown: 'M8 3v10M4 9l4 4 4-4',
     list: 'M3 4h10M5 8h8M7 12h6',
     replace: 'M3 5h7l-2-2M13 11H6l2 2',
+    gear: 'M8 10a2 2 0 1 0 0-4 2 2 0 0 0 0 4zM8 1.5v2M8 12.5v2M1.5 8h2M12.5 8h2M3.4 3.4l1.4 1.4M11.2 11.2l1.4 1.4M3.4 12.6l1.4-1.4M11.2 4.8l1.4-1.4',
   } as const;
   export type IconName = keyof typeof PATHS;
 </script>

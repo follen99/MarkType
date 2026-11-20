@@ -3,6 +3,48 @@
 Elenco per l'utente (tester). Si spunta `[x]` ciò che funziona; per i problemi basta una riga con cosa è
 successo. Dopo i test l'agente aggiorna la colonna "Testata dall'utente" in [STATUS.md](STATUS.md).
 
+## v0.8.0 (area di lavoro: cartelle recenti, sessione, immagini, schede)
+
+Installare `MarkType_0.8.0_x64-setup.exe` dalla pagina Releases (dopo aver premuto **Publish release** sulla
+bozza `v0.8.0`).
+
+**Sidebar e cartelle recenti**
+- [ ] In fondo alla sidebar ci sono tre pulsanti: **+**, cartella, ingranaggio. Un clic apre il menu, un
+      secondo clic sullo stesso pulsante lo chiude.
+- [ ] **+** → "Nuovo documento" apre una scheda vuota; con una cartella aperta ci sono anche "Nuovo file nella
+      cartella" e "Nuova cartella".
+- [ ] Cartella → "Apri cartella…", poi l'elenco delle cartelle recenti (quella aperta ha la ✓), "Svuota
+      elenco", "Chiudi cartella". Aprire 2–3 cartelle diverse e passare dall'una all'altra dall'elenco.
+- [ ] Le stesse cartelle recenti sono anche nel menu **File**.
+- [ ] Rinominare o cancellare (da Esplora risorse) una cartella recente, poi cliccarla: compare un avviso e
+      sparisce dall'elenco.
+- [ ] Ingranaggio → si aprono le Impostazioni.
+
+**Riavvio e sessione**
+- [ ] Con una cartella e 2–3 file aperti, chiudere e riaprire MarkType: tornano la cartella, le schede nello
+      stesso ordine e la scheda attiva. **La sidebar resta aperta** com'era.
+- [ ] Chiudere MarkType, cancellare da Esplora risorse uno dei file che erano aperti, riaprire: un solo avviso
+      con il file mancante, nessuna scheda vuota o rotta. Riavviando di nuovo l'avviso non ricompare.
+- [ ] Come sopra ma cancellando (o rinominando) la cartella aperta: l'app parte senza cartella.
+- [ ] Impostazioni → "Riapri cartella e file dell'ultima sessione" spento: al riavvio non riapre nulla.
+
+**Immagini tolte dal documento** (modalità visuale)
+- [ ] Incollare un'immagine in un documento salvato (finisce in `assets`), poi cancellarla con Backspace:
+      chiede se spostare il file nel cestino. "Sposta nel cestino" → il file è nel Cestino di Windows.
+- [ ] Con "Ricorda la scelta" spuntato, la volta dopo non chiede più e fa la stessa cosa. Si cambia in
+      Impostazioni → Immagini → "Quando togli un'immagine dal documento".
+- [ ] Due immagini che puntano allo stesso file: cancellandone una, l'avviso dice che il file è ancora usato e
+      il pulsante predefinito è "Mantieni il file".
+- [ ] Tagliare (`Ctrl+X`) un'immagine o annullare (`Ctrl+Z`) non chiede nulla. Un'immagine fuori dalla
+      cartella del documento (es. su un altro disco) non viene mai proposta per il cestino.
+
+**Schede**
+- [ ] Clic destro su una scheda: "Apri la cartella del file", "Copia percorso", "Chiudi scheda", "Chiudi le
+      altre schede".
+- [ ] "Apri la cartella del file" per un file dentro la cartella aperta: lo mostra nell'albero (pannello File).
+      Per un file fuori: chiede se aprire la sua cartella al posto di quella attuale. Senza cartella aperta: la
+      apre subito.
+
 ## v0.7.0 (M7, prima parte: prestazioni e tastiera)
 
 - [ ] L'app parte e funziona come la 0.6.0 (nessuna finestra bianca, temi, immagini).

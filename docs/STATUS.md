@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.7.0` (beta 2, prima parte di M7: prestazioni e tastiera).
+> Ultimo aggiornamento: **2026-11-20**, dopo la release `v0.8.0` (beta 3, M8: area di lavoro, dal feedback sulla v0.7.0).
 
 ## 1. Dove siamo
 
@@ -16,7 +16,8 @@
 | M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
 | M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | **no, in attesa di test** |
 | M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | **no, in attesa di test** |
-| M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | **no, in attesa di test** |
+| M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | sì, feedback → M8 |
+| M8 Area di lavoro (feedback v0.7.0) | ✅ completata, rilasciata come `v0.8.0` | branch `m8-workspace` | **no, in attesa di test** |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -96,10 +97,29 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
   (markdown su stdin, `--resource-path` = cartella del documento, nessuna finestra console). `open_export`
   apre solo file con estensioni di export.
 
+### Come sono fatti area di lavoro e sessione (M8)
+- `packages/app/src/session.ts` (funzioni pure, test in `test/session.test.ts`): `samePath`, `addRecent`/
+  `removeRecent`, `parseSession`, `planRestore` (cartella + file ancora esistenti, il resto in `missing`).
+- Prefs: `recentFolders` (max 10), `session` = `{ files, active }` (solo schede con un file), salvata da un
+  `$effect` di App.svelte dopo `workspace.startSession()` (prima no, altrimenti la scheda vuota iniziale
+  sovrascriverebbe la sessione). Ripristino solo senza argomenti da riga di comando e con `restoreFolder` attivo:
+  cartella, poi file, poi bozze. `workspace.forget(paths)` toglie i mancanti da recenti e `lastFolder`.
+- Rust `folder.rs` `path_kind` → `platform.folders.exists(path)`: `'file' | 'dir' | null`.
+- `SidebarState.show(tab)` è la scorciatoia dell'utente (alterna); `reveal(tab)` la usa l'app e non chiude mai.
+  All'avvio la cartella si riapre senza toccare la sidebar (resta come era salvata).
+- Piede della sidebar: `ContextMenuState.toggleAbove(pulsante, items)` (menu sopra il pulsante; il secondo
+  clic lo chiude). Voci con `checked`, `detail`, `disabled` e intestazioni `{ header }`.
+- Immagini tolte: `packages/editor/src/wysiwyg/removedimages.ts` `removedImageSources(tr)` (immagini nei range
+  sostituiti meno quelle reinserite; ignora `uiEvent` cut/drop, `history$` e la meta `KEEP_IMAGES_META` usata da
+  `replaceImageSources`); `onImagesRemoved` è chiamato con `queueMicrotask`. Decisione in
+  `DocumentController.imagesRemoved` con `removedImageFiles`/`removalAction` di `images.ts`; prefs
+  `images.removeFile` (`ask`/`trash`/`keep`). **La modalità sorgente non è coperta** (CodeMirror non segnala le
+  immagini tolte). `Dialogs.ask()` = confirm con casella opzionale, restituisce `{ id, checked }`.
+
 ## 2. Prossimo passo: M7 Rifinitura → v1.0
 
 Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
-1. Aspettare il feedback dell'utente su M3–M7 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere i problemi trovati.
+1. Aspettare il feedback dell'utente su v0.8.0 e M3–M6 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere i problemi trovati.
 2. Fatto in `v0.7.0`: RAM WebView2, CodeMirror lazy, menu da tastiera, README. Da fare: documenti da 10k righe
    (misurare digitazione e apertura), contrasto colori, screenshot nel README.
 3. PDF diretto senza dialog (WebView2 `PrintToPdf` via `webview2-com`, `WKWebView.createPDF`), header/footer.
@@ -181,7 +201,7 @@ cargo clippy --workspace --all-targets -- -D warnings
 pnpm exec prettier --write . ; cargo fmt --all
 pnpm build:web                               # build web (apps/web/dist)
 pnpm --filter @marktype/desktop tauri build --bundles nsis   # installer in target/release/bundle/nsis
-node scripts/smoke-desktop.mjs               # dopo la build: test end-to-end dell'app vera (temi, immagini, settings, CLI)
+node scripts/smoke-desktop.mjs               # dopo la build: test end-to-end dell'app vera (temi, immagini, settings, CLI, sessione)
 ```
 
 ### Rilasci (GitHub Releases + GitHub Pages)

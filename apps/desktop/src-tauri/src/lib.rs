@@ -48,6 +48,7 @@ pub fn run() {
             folder::rename_path,
             folder::move_path,
             folder::trash_path,
+            folder::path_kind,
             search::search_folder,
             drafts::save_draft,
             drafts::remove_draft,

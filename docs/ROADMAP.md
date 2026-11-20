@@ -115,6 +115,13 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 - [ ] Screenshot nel README
 - [ ] CHANGELOG e release `v1.0.0`
 
+## M8 / v0.8.0: area di lavoro (feedback dell'utente sulla v0.7.0)
+- [x] Cartelle recenti (menu File e pulsante in fondo alla sidebar), pulsanti rapidi +, cartella, impostazioni
+- [x] Ripristino della sessione (schede e scheda attiva), file e cartelle cancellati saltati con un solo avviso
+- [x] Sidebar che restava chiusa al riavvio (`SidebarState.reveal`)
+- [x] Immagine tolta dal testo (modalità visuale) → proposta di spostare il file nel cestino; impostazione `images.removeFile`
+- [x] Menu contestuale delle schede (cartella del file, copia percorso, chiudi, chiudi le altre)
+
 ## Fase 2: versione web
 - [ ] `WebPlatform` (apri/salva singolo file, File System Access dove disponibile, altrimenti download)
 - [ ] Immagini in memoria + salvataggio/apertura come `.zip`

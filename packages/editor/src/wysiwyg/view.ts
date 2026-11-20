@@ -17,6 +17,7 @@ import { CodeBlockView, RawBlockView } from '../render/blocks.ts';
 import { tableSupport } from '../render/table.ts';
 import { tocSupport } from '../render/toc.ts';
 import { clipboardPlugin, type SaveImage } from './clipboard.ts';
+import { removedImageSources } from './removedimages.ts';
 
 export interface WysiwygViewOptions {
   style: MarkdownStyle;
@@ -27,6 +28,8 @@ export interface WysiwygViewOptions {
   onUpdate?(view: EditorView, docChanged: boolean): void;
   /** Stores pasted or dropped image files; without it they are ignored. */
   saveImage?: SaveImage;
+  /** The user deleted these images from the text (called after the update, never inside dispatch). */
+  onImagesRemoved?(srcs: string[]): void;
 }
 
 class ImageView implements NodeView {
@@ -159,6 +162,8 @@ export function createWysiwygView(parent: HTMLElement, doc: PMNode, options: Wys
       const state = view.state.apply(tr);
       view.updateState(state);
       options.onUpdate?.(view, tr.docChanged);
+      const removed = options.onImagesRemoved && options.editable ? removedImageSources(tr) : [];
+      if (removed.length) queueMicrotask(() => options.onImagesRemoved?.(removed));
     },
   });
   return view;

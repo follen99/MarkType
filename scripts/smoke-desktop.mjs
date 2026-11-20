@@ -10,7 +10,9 @@
 // - settings (M6): settings.json is read at startup and written when a setting changes, keybindings.json
 //   overrides a shortcut;
 // - launch (M6): `marktype file.md` opens the file; launching again with a file and a folder hands them to
-//   the running window (single instance) and the second process exits.
+//   the running window (single instance) and the second process exits;
+// - session (M8): the open tabs and the folder come back after a restart (sidebar still open), a file
+//   deleted meanwhile is skipped, reported once and dropped from the session and the recent files.
 
 import { spawn } from 'node:child_process';
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
@@ -263,6 +265,110 @@ try {
   );
   check('second launch exits (single instance)', exited === true);
   check('second launch opens its file and folder here', !!handed, String(handed));
+
+  // M8 session: the open tabs, the folder and the recent folders are saved in settings.json.
+  await sleep(1000);
+  const saved = JSON.parse(readFileSync(settingsFile, 'utf8'));
+  const savedFiles = (saved.session?.files ?? []).map((p) => p.split(/[\\/]/).pop()).join('|');
+  check(
+    'session saves the open tabs',
+    savedFiles === 'smoke cli.md|smoke second.md' && /smoke second\.md$/.test(saved.session?.active ?? ''),
+    JSON.stringify(saved.session),
+  );
+  check(
+    'opened folder goes to the recent folders',
+    (saved.recentFolders ?? [])[0]?.endsWith('notes folder') === true,
+    JSON.stringify(saved.recentFolders),
+  );
+  const kinds = await cdp.eval(`(async () => {
+    const invoke = window.__TAURI_INTERNALS__.invoke;
+    return [${JSON.stringify(folder)}, ${JSON.stringify(cliFile)}, ${JSON.stringify(join(docsDir, 'nope.md'))}]
+      .map((path) => invoke('path_kind', { path }));
+  })().then((all) => Promise.all(all))`);
+  check('path_kind tells folders, files and missing paths', JSON.stringify(kinds) === '["dir","file",null]');
+
+  // Restart without arguments, after deleting one of the files: the session comes back without it.
+  cdp.close();
+  app.kill();
+  await sleep(2000);
+  rmSync(secondFile);
+  app = launch();
+  cdp = client(await connect());
+  await cdp.ready;
+  const missingAlert = await waitFor(
+    cdp,
+    `document.querySelector('.mt-dialog-message')?.textContent.includes('smoke second.md') && document.querySelector('.mt-dialog-message').textContent`,
+  );
+  const restored = await cdp.eval(`({
+    tabs: ${tabNames},
+    active: document.querySelector('.mt-tab.active .mt-tab-name')?.textContent.trim(),
+    sidebar: !document.querySelector('.mt-body').classList.contains('sidebar-hidden') && !!document.querySelector('#typora-sidebar'),
+    tree: document.querySelector('#typora-sidebar')?.innerText.includes('inside-the-folder') ?? false,
+  })`);
+  check(
+    'session restores the tabs after a restart',
+    restored?.tabs === 'smoke cli.md',
+    JSON.stringify(restored),
+  );
+  check('a deleted file in the session is skipped and reported once', !!missingAlert, String(missingAlert));
+  check('sidebar stays open with the restored folder', restored?.sidebar === true && restored?.tree === true);
+  await cdp.eval(`document.querySelector('.mt-dialog .mt-button.primary')?.click()`);
+  await sleep(1000);
+  const after = JSON.parse(readFileSync(settingsFile, 'utf8'));
+  // M8 images: deleting an image from the text asks about its file; "Keep" leaves it on disk.
+  const picDir = join(docsDir, 'assets');
+  mkdirSync(picDir);
+  writeFileSync(join(picDir, 'pic.png'), Buffer.from(PNG, 'base64'));
+  const imageDoc = join(docsDir, 'with image.md');
+  writeFileSync(imageDoc, 'Before ![p](assets/pic.png) after\n');
+  spawn(exe, [imageDoc], { env: { ...process.env, MARKTYPE_CONFIG_DIR: configDir } });
+  await waitFor(cdp, `document.querySelector('.mt-doc:not([hidden]) #write .md-image img') !== null`);
+  const asked = await cdp.eval(`(async () => {
+    const write = document.querySelector('.mt-doc:not([hidden]) #write');
+    const span = write.querySelector('.md-image');
+    const range = document.createRange();
+    range.setStartBefore(span);
+    range.setEndAfter(span);
+    write.focus();
+    getSelection().removeAllRanges();
+    getSelection().addRange(range);
+    await new Promise((r) => setTimeout(r, 300));
+    write.dispatchEvent(new KeyboardEvent('keydown', { key: 'Backspace', code: 'Backspace', bubbles: true, cancelable: true }));
+    let dialog = null;
+    for (let i = 0; i < 30 && !dialog; i++) {
+      await new Promise((r) => setTimeout(r, 100));
+      dialog = document.querySelector('.mt-dialog');
+    }
+    const result = {
+      gone: !write.querySelector('.md-image'),
+      message: dialog?.querySelector('.mt-dialog-message')?.textContent ?? '',
+      checkbox: !!dialog?.querySelector('.mt-dialog-check input'),
+    };
+    dialog?.querySelector('.mt-dialog-buttons .mt-button:not(.primary)')?.click();
+    await new Promise((r) => setTimeout(r, 300));
+    // Undo, so the document is clean and no crash-recovery draft is left behind.
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'z', code: 'KeyZ', ctrlKey: true, bubbles: true }));
+    await new Promise((r) => setTimeout(r, 300));
+    result.back = !!write.querySelector('.md-image');
+    result.extra = !!document.querySelector('.mt-dialog');
+    return result;
+  })()`);
+  check(
+    'deleting an image asks about its file (with "remember")',
+    asked?.gone === true && asked.message.includes('pic.png') && asked.checkbox === true,
+    JSON.stringify(asked),
+  );
+  check(
+    '"Keep" leaves the file, undo asks nothing',
+    existsSync(join(picDir, 'pic.png')) && asked?.back === true && asked?.extra === false,
+  );
+
+  check(
+    'the deleted file is dropped from the session',
+    (after.session?.files ?? []).length === 1 &&
+      !(after.recentFiles ?? []).some((p) => p.endsWith('smoke second.md')),
+    JSON.stringify(after.session),
+  );
 } catch (error) {
   check('smoke test ran', false, String(error));
 } finally {

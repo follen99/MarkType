@@ -1,9 +1,18 @@
 <script lang="ts">
   import type { Translate } from '@marktype/i18n';
   import type { Workspace } from '../workspace.svelte.ts';
+  import type { DocumentController } from '../document.svelte.ts';
   import Icon from '../ui/Icon.svelte';
 
-  let { workspace, t }: { workspace: Workspace; t: Translate } = $props();
+  let {
+    workspace,
+    t,
+    oncontextmenu,
+  }: {
+    workspace: Workspace;
+    t: Translate;
+    oncontextmenu: (event: MouseEvent, doc: DocumentController) => void;
+  } = $props();
 
   function onAuxClick(event: MouseEvent, index: number) {
     if (event.button === 1) {
@@ -26,6 +35,7 @@
       onclick={() => workspace.activate(doc)}
       onkeydown={(e) => (e.key === 'Enter' || e.key === ' ') && workspace.activate(doc)}
       onauxclick={(e) => onAuxClick(e, index)}
+      oncontextmenu={(e) => oncontextmenu(e, doc)}
       onmousedown={(e) => e.button === 1 && e.preventDefault()}
     >
       <span class="mt-tab-name">{doc.name}</span>
