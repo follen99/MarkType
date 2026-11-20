@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  MSI installer fragment (tauri.conf.json > bundle.windows.wix): "Open with MarkType" in the Explorer
+  context menu of folders, folder backgrounds and Markdown files, like windows/hooks.nsh for the NSIS
+  installer. The MSI installs for all users, so the keys go under HKLM\Software\Classes. [#Path] is the
+  installed marktype.exe (File Id="Path" in Tauri's main.wxs).
+-->
+<Wix xmlns="http://schemas.microsoft.com/wix/2006/wi">
+  <Fragment>
+    <DirectoryRef Id="INSTALLDIR">
+      <Component Id="MarkTypeContextMenu" Guid="E0C8D724-E80B-4739-B35E-3CAB63CD4513">
+        <RegistryKey Root="HKLM" Key="Software\Classes\Directory\shell\MarkType" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" KeyPath="yes" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\Classes\Directory\Background\shell\MarkType" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%V&quot;" />
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\Classes\SystemFileAssociations\.md\shell\MarkType" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+        </RegistryKey>
+        <RegistryKey Root="HKLM" Key="Software\Classes\SystemFileAssociations\.markdown\shell\MarkType" ForceDeleteOnUninstall="yes">
+          <RegistryValue Name="Icon" Type="string" Value="&quot;[#Path]&quot;,0" />
+          <RegistryValue Key="command" Type="string" Value="&quot;[#Path]&quot; &quot;%1&quot;" />
+        </RegistryKey>
+      </Component>
+      <!-- The label: Italian on Italian Windows (1040), English otherwise. -->
+      <Component Id="MarkTypeContextMenuLabelIt" Guid="B8BBE4A5-AFCE-41F1-90F5-B7060F2935DC">
+        <Condition>UserLanguageID = 1040</Condition>
+        <RegistryValue Root="HKLM" Key="Software\Classes\Directory\shell\MarkType" Type="string" Value="Apri con MarkType" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Directory\Background\shell\MarkType" Type="string" Value="Apri con MarkType" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.md\shell\MarkType" Type="string" Value="Apri con MarkType" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.markdown\shell\MarkType" Type="string" Value="Apri con MarkType" />
+      </Component>
+      <Component Id="MarkTypeContextMenuLabelEn" Guid="E8303922-72FF-4F33-B332-18F764DEE481">
+        <Condition>NOT (UserLanguageID = 1040)</Condition>
+        <RegistryValue Root="HKLM" Key="Software\Classes\Directory\shell\MarkType" Type="string" Value="Open with MarkType" KeyPath="yes" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\Directory\Background\shell\MarkType" Type="string" Value="Open with MarkType" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.md\shell\MarkType" Type="string" Value="Open with MarkType" />
+        <RegistryValue Root="HKLM" Key="Software\Classes\SystemFileAssociations\.markdown\shell\MarkType" Type="string" Value="Open with MarkType" />
+      </Component>
+    </DirectoryRef>
+    <ComponentGroup Id="MarkTypeContextMenuGroup">
+      <ComponentRef Id="MarkTypeContextMenu" />
+      <ComponentRef Id="MarkTypeContextMenuLabelIt" />
+      <ComponentRef Id="MarkTypeContextMenuLabelEn" />
+    </ComponentGroup>
+  </Fragment>
+</Wix>

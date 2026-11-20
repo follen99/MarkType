@@ -300,7 +300,22 @@ export async function exportDocument(ctx: ExportContext, format: ExportFormat): 
   const { platform, doc, t } = ctx;
   try {
     if (format === 'pdf') {
-      await printPage(await buildPage(ctx, 'print', null));
+      const printPdf = platform.export.printPdf;
+      if (!printPdf) {
+        await printPage(await buildPage(ctx, 'print', null));
+        return;
+      }
+      // Windows: straight to a file. The page is self-contained (it is loaded from a temporary folder).
+      const target = await platform.export.pickTarget(exportFileName(doc.name, 'pdf'), filterFor('pdf'));
+      if (!target) return;
+      const html = await buildPage(
+        { ...ctx, settings: { ...ctx.settings, embedImages: true } },
+        'file',
+        target,
+      );
+      // The header shows the page <title> (first heading or file name).
+      await printPdf({ html, output: target, headerFooter: ctx.settings.pdfHeaderFooter, title: '' });
+      await done(ctx, target);
       return;
     }
     const target = await platform.export.pickTarget(

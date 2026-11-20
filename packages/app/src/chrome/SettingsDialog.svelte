@@ -246,6 +246,16 @@
             />
             <span>{t('settings.export.embedImages')}</span>
           </label>
+          {#if platform.export.printPdf}
+            <label class="mt-settings-check">
+              <input
+                type="checkbox"
+                checked={settings.exportSettings.pdfHeaderFooter}
+                onchange={(e) => settings.setExport({ pdfHeaderFooter: e.currentTarget.checked })}
+              />
+              <span>{t('settings.export.pdfHeaderFooter')}</span>
+            </label>
+          {/if}
           {#if platform.export.pandoc}
             <label class="mt-settings-row">
               <span>{t('settings.export.pandocPath')}</span>

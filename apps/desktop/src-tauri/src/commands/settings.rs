@@ -115,6 +115,14 @@ pub fn hardware_acceleration(app: &AppHandle) -> bool {
         .unwrap_or(true)
 }
 
+/// The WebView2 flags chosen at startup. Every window (also the hidden one of the PDF export) must use
+/// the same ones: WebView2 refuses a second environment with different options.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn startup_webview_args(app: &AppHandle) -> &'static str {
+    static ARGS: std::sync::OnceLock<String> = std::sync::OnceLock::new();
+    ARGS.get_or_init(|| webview_args(hardware_acceleration(app)))
+}
+
 fn config_file(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
     Ok(user_config_dir(app)?.join(name))
 }

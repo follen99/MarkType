@@ -242,6 +242,8 @@ export async function createTauriPlatform(): Promise<Platform> {
           await invoke('pandoc_export', { job });
         },
       },
+      // WebView2 PrintToPdf; WKWebView and WebKitGTK keep the print dialog.
+      printPdf: os === 'windows' ? (job) => invoke('print_pdf', { job }) : null,
     },
     resolveAssetUrl(doc, src) {
       const path = localPath(doc, src);

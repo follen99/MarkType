@@ -5,6 +5,7 @@ pub mod folder;
 pub mod fs;
 pub mod images;
 pub mod launch;
+pub mod pdf;
 pub mod search;
 pub mod settings;
 pub mod themes;

@@ -259,5 +259,6 @@
   "settings.images.removeFile.ask": "Chiedi cosa fare",
   "settings.images.removeFile.trash": "Sposta il file nel cestino",
   "settings.images.removeFile.keep": "Mantieni il file",
-  "settings.images.removeFileHelp": "Solo per le immagini nella cartella del documento (o sotto). Se il file è usato anche altrove nel documento, MarkType chiede sempre."
+  "settings.images.removeFileHelp": "Solo per le immagini nella cartella del documento (o sotto). Se il file è usato anche altrove nel documento, MarkType chiede sempre.",
+  "settings.export.pdfHeaderFooter": "PDF: intestazione e piè di pagina (titolo, data, numeri di pagina)"
 }

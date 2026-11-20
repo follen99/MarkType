@@ -259,5 +259,6 @@
   "settings.images.removeFile.ask": "Ask what to do",
   "settings.images.removeFile.trash": "Move the file to the trash",
   "settings.images.removeFile.keep": "Keep the file",
-  "settings.images.removeFileHelp": "Only for images in the document's folder (or below). If the file is also used elsewhere in the document, MarkType always asks."
+  "settings.images.removeFileHelp": "Only for images in the document's folder (or below). If the file is also used elsewhere in the document, MarkType always asks.",
+  "settings.export.pdfHeaderFooter": "PDF: header and footer (title, date, page numbers)"
 }

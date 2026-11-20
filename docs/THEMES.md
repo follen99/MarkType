@@ -51,6 +51,11 @@ Le stesse di Typora, tra cui:
 `--code-block-bg-color`, `--md-char-color`, `--heading-char-color`, `--blur-text-color`,
 `--search-hit-bg-color`, `--search-select-bg-color`, `--rawblock-edit-panel-bd`, `--base-font-size`.
 
+Solo MarkType: `--mt-on-primary-color`, il colore del testo sui pulsanti principali (sfondo `--primary-color`;
+predefinito bianco). Un tema scuro con un colore d'accento chiaro deve impostarlo scuro (come MarkType Dark).
+I temi integrati hanno un contrasto di almeno 4,5:1 (WCAG AA) per `--control-text-color` sullo sfondo e
+sulla sidebar, e per il testo dei pulsanti principali.
+
 I temi possono definirne altre per uso interno (come fa Formal Dark Pro con `--code-bg`, `--link-color`, …).
 
 ## Selettori principali

@@ -183,6 +183,7 @@ export function createWebPlatform(): Platform {
         download(target, text, target.endsWith('.html') ? 'text/html' : 'text/plain'),
       open: null,
       pandoc: null,
+      printPdf: null,
     },
     // Relative images cannot be read from a single opened file; they load only if they are URLs.
     resolveAssetUrl: (_doc, src) => src,

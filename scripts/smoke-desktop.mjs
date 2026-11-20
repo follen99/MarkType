@@ -315,6 +315,36 @@ try {
   await cdp.eval(`document.querySelector('.mt-dialog .mt-button.primary')?.click()`);
   await sleep(1000);
   const after = JSON.parse(readFileSync(settingsFile, 'utf8'));
+  // M9 PDF: WebView2 PrintToPdf writes the file without the print dialog (with and without header/footer).
+  const pdfs = [join(docsDir, 'export plain.pdf'), join(docsDir, 'export header.pdf')];
+  const pdfResult = await cdp.eval(`(async () => {
+    const invoke = window.__TAURI_INTERNALS__.invoke;
+    const html = '<!doctype html><html><head><meta charset="utf-8"><title>Smoke PDF</title></head><body><h1>PDF àè</h1><p>' + 'Lorem ipsum. '.repeat(400) + '</p></body></html>';
+    const out = [];
+    for (const [output, headerFooter] of [[${JSON.stringify(pdfs[0])}, false], [${JSON.stringify(pdfs[1])}, true]]) {
+      const start = performance.now();
+      try {
+        await invoke('print_pdf', { job: { html, output, headerFooter, title: '' } });
+        out.push(Math.round(performance.now() - start));
+      } catch (e) {
+        out.push('error: ' + e);
+      }
+    }
+    return out;
+  })()`);
+  const pdfOk = pdfs.map((p) => existsSync(p) && readFileSync(p).subarray(0, 5).toString() === '%PDF-');
+  check(
+    'PDF export writes the file without the print dialog',
+    pdfOk.every(Boolean),
+    JSON.stringify(pdfResult),
+  );
+  const pdfSizes = pdfs.map((p) => (existsSync(p) ? readFileSync(p).length : 0));
+  check(
+    'PDF header/footer changes the output',
+    pdfSizes[0] > 0 && pdfSizes[0] !== pdfSizes[1],
+    pdfSizes.join(' vs '),
+  );
+
   // M8 images: deleting an image from the text asks about its file; "Keep" leaves it on disk.
   const picDir = join(docsDir, 'assets');
   mkdirSync(picDir);
