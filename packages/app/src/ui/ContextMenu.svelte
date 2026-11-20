@@ -80,8 +80,9 @@
           }}
         >
           <span class="mt-menu-label">
-            {#if checkable}<span class="mt-menu-check" aria-hidden="true">{item.checked ? '✓' : ''}</span
-              >{/if}{item.label}
+            {#if checkable}<span class="mt-menu-check" aria-hidden="true">
+                {item.checked ? '✓' : ''}
+              </span>{/if}{item.label}
           </span>
           {#if item.detail}<span class="mt-menu-detail">{item.detail}</span>{/if}
         </button>

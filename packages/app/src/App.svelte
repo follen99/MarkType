@@ -21,8 +21,8 @@
   import { FileActions } from './sidebar/fileactions.ts';
   import { SidebarState } from './sidebar/sidebar.svelte.ts';
   import { ContextMenuState, type ContextMenuEntry } from './ui/contextmenu.svelte.ts';
-import { parseSession, planRestore, samePath } from './session.ts';
-import type { DocumentController } from './document.svelte.ts';
+  import { parseSession, planRestore, samePath } from './session.ts';
+  import type { DocumentController } from './document.svelte.ts';
   import {
     DEFAULT_KEYBINDINGS,
     buildShortcutMap,
@@ -106,7 +106,11 @@ import type { DocumentController } from './document.svelte.ts';
     if (!folders) return;
     if ((await folders.exists(path)) !== 'dir') {
       workspace.forget([path]);
-      await dialogs.alert(t('recentFolders.missing.title'), t('recentFolders.missing', { path }), t('dialog.ok'));
+      await dialogs.alert(
+        t('recentFolders.missing.title'),
+        t('recentFolders.missing', { path }),
+        t('dialog.ok'),
+      );
       return;
     }
     await openFolder(path).catch(() => workspace.closeFolder());
@@ -405,15 +409,13 @@ import type { DocumentController } from './document.svelte.ts';
     const current = workspace.folder;
     return [
       { kind: 'header', label: t('recentFolders.title') },
-      ...workspace.recentFolders.map(
-        (path): SlotItem => ({
-          kind: 'item',
-          key: `folder-${path}`,
-          label: basename(path) || path,
-          checked: current !== null && samePath(current, path),
-          run: () => void openRecentFolder(path),
-        }),
-      ),
+      ...workspace.recentFolders.map((path): SlotItem => ({
+        kind: 'item',
+        key: `folder-${path}`,
+        label: basename(path) || path,
+        checked: current !== null && samePath(current, path),
+        run: () => void openRecentFolder(path),
+      })),
       {
         kind: 'item',
         key: 'folder-clear',

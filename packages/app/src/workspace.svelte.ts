@@ -4,14 +4,7 @@ import { isInside, type Draft, type FileRef, type Platform } from '@marktype/pla
 import type { Dialogs } from './dialogs.svelte.ts';
 import { DocumentController, errorMessage } from './document.svelte.ts';
 import { DEFAULT_IMAGE_SETTINGS, loadImageSettings, type ImageSettings } from './images.ts';
-import {
-  MAX_RECENT_FOLDERS,
-  addRecent,
-  pathList,
-  removeRecent,
-  samePath,
-  type Session,
-} from './session.ts';
+import { MAX_RECENT_FOLDERS, addRecent, pathList, removeRecent, samePath, type Session } from './session.ts';
 
 const MAX_RECENT = 20;
 const MAX_CLOSED = 20;

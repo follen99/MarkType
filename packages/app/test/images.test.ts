@@ -154,12 +154,23 @@ describe('settings', () => {
 describe('removed images', () => {
   // Like platform.resolveLocalLink for a document in C:/Notes.
   const resolve = (src: string) =>
-    /^[a-z]+:\/\//i.test(src) ? null : src.includes(':') ? src : resolvePath('C:\\Notes', decodePathComponent(src));
+    /^[a-z]+:\/\//i.test(src)
+      ? null
+      : src.includes(':')
+        ? src
+        : resolvePath('C:\\Notes', decodePathComponent(src));
   const roots = ['C:\\Notes'];
 
   it('keeps only local images inside the document folder', () => {
     const files = removedImageFiles(
-      ['assets/a.png', 'https://x.org/b.png', 'D:/pics/c.png', '../d.png', 'notes.md', 'assets/sub/e%201.jpg'],
+      [
+        'assets/a.png',
+        'https://x.org/b.png',
+        'D:/pics/c.png',
+        '../d.png',
+        'notes.md',
+        'assets/sub/e%201.jpg',
+      ],
       [],
       resolve,
       roots,

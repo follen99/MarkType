@@ -5,6 +5,28 @@ versioning: [SemVer](https://semver.org).
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-11-20 (beta 3)
+
+### Added
+- Recent folders: every opened folder is remembered (at most 10), in File menu and in the new folder button
+  at the bottom of the sidebar, with the open one checked, "Clear list" and "Close folder". A folder deleted
+  meanwhile is dropped from the list with a short message.
+- Buttons at the bottom of the sidebar: **+** (new document, new file or folder in the open folder), folder
+  (open, recent folders) and gear (settings).
+- Session restore: the open files (and the active tab) come back at the next start together with the last
+  folder (Settings → "Reopen the folder and files of the last session"). Files or folders deleted while
+  MarkType was closed are skipped, dropped from the recent lists and listed in one message.
+- Removing an image from the text (visual mode) offers to move its file to the trash, for images in the
+  document's folder or below. A file still used by another image of the same document always asks, with a
+  warning. Settings → Images → "When you remove an image" (ask, move to trash, keep); the question has a
+  "Remember my choice" box.
+- Right click on a tab: open the file's folder (shown in the tree, or opened in the sidebar), copy path,
+  close, close other tabs.
+
+### Fixed
+- The sidebar was closed after a restart when the last folder was reopened.
+- A recent file that no longer exists is dropped from the list when clicked.
+
 ## [0.7.0] - 2026-11-20 (beta 2)
 
 ### Added

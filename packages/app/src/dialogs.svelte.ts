@@ -59,7 +59,14 @@ export class Dialogs {
 
   /** Like `confirm`, with an optional checkbox whose state comes back with the button. */
   ask(title: string, message: string, buttons: DialogButton[], checkbox?: string): Promise<ConfirmResult> {
-    return this.show<ConfirmResult>((resolve) => ({ kind: 'confirm', title, message, buttons, checkbox, resolve }));
+    return this.show<ConfirmResult>((resolve) => ({
+      kind: 'confirm',
+      title,
+      message,
+      buttons,
+      checkbox,
+      resolve,
+    }));
   }
 
   alert(title: string, message: string, okLabel: string): Promise<void> {
