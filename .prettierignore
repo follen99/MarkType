@@ -8,3 +8,4 @@ packages/themes/builtin/formal-dark-pro
 packages/editor/test/fixtures
 *.md
 LICENSE
+*.wxs
