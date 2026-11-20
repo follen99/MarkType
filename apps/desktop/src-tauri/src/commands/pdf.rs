@@ -6,6 +6,8 @@ use std::path::PathBuf;
 
 #[derive(Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
+// Only Windows reads the fields; elsewhere the command reports that it is unavailable.
+#[cfg_attr(not(windows), allow(dead_code))]
 pub struct PdfJob {
     /// The standalone HTML page (images and theme assets embedded).
     pub html: String,
