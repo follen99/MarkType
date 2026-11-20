@@ -36,6 +36,8 @@
   let checking = $state(false);
   // svelte-ignore state_referenced_locally
   const initialLanguage = settings.language;
+  // svelte-ignore state_referenced_locally
+  const initialAcceleration = settings.hardwareAcceleration;
 
   $effect(() => {
     if (!open) return;
@@ -119,6 +121,19 @@
 
         <section>
           <h3>{t('settings.editor')}</h3>
+          {#if platform.config && platform.os === 'windows'}
+            <label class="mt-settings-check">
+              <input
+                type="checkbox"
+                checked={settings.hardwareAcceleration}
+                onchange={(e) => settings.setHardwareAcceleration(e.currentTarget.checked)}
+              />
+              <span>{t('settings.hardwareAcceleration')}</span>
+            </label>
+            {#if settings.hardwareAcceleration !== initialAcceleration}
+              <p class="mt-settings-note">{t('settings.restart')}</p>
+            {/if}
+          {/if}
           <label class="mt-settings-row">
             <span>{t('settings.fontSize')}</span>
             <select

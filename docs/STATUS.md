@@ -3,7 +3,7 @@
 > **Leggere per primo all'inizio di ogni sessione.** Aggiornare alla fine di ogni blocco di lavoro (insieme a
 > [ROADMAP.md](ROADMAP.md) e [CHANGELOG.md](../CHANGELOG.md)).
 >
-> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.6.0` (beta 1, export e integrazione con il sistema).
+> Ultimo aggiornamento: **2026-11-19**, dopo la release `v0.7.0` (beta 2, prima parte di M7: prestazioni e tastiera).
 
 ## 1. Dove siamo
 
@@ -16,7 +16,7 @@
 | M4 Temi → alpha 4 | ✅ completata, rilasciata come `v0.4.0` | branch `m4-themes` | **no, in attesa di test** |
 | M5 Immagini e appunti → alpha 5 | ✅ completata, rilasciata come `v0.5.0` | branch `m5-images` | **no, in attesa di test** |
 | M6 Export e integrazione OS → beta | ✅ completata, rilasciata come `v0.6.0` | branch `m6-export-os` | **no, in attesa di test** |
-| M7 Rifinitura → v1.0 | ⏭️ **prossima** | | |
+| M7 Rifinitura → v1.0 | 🔶 in corso: prima parte rilasciata come `v0.7.0` | branch `m7-polish` | **no, in attesa di test** |
 | Fase 2: versione web (GitHub Pages) | online su https://follen99.github.io/MarkType/ (apri/salva file singolo); resto da fare | | |
 
 Dettaglio di ogni voce (fatto/da fare) in [ROADMAP.md](ROADMAP.md); requisiti concordati in [SPEC.md](SPEC.md).
@@ -27,9 +27,14 @@ Elenco delle prove per l'utente: [DA-TESTARE.md](DA-TESTARE.md).
 release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o che finisca la finestra di 5 ore.
 
 ### Ultima build (Windows 11, release)
-- Installer NSIS: **4,58 MB** (target < 15 MB).
-- RAM a vuoto (M0): ~206 MB privati, quasi tutti WebView2 → **sopra il target di 150 MB**, da ottimizzare in M7.
-- Bundle JS iniziale ~330 KB gzip; Mermaid, KaTeX, linguaggi di highlight, DOMPurify e gemoji sono chunk lazy.
+- Installer NSIS: **4,59 MB** (target < 15 MB).
+- RAM a vuoto (v0.7.0, memoria privata di marktype.exe + processi WebView2, documento vuoto): **181 MB** con
+  `--in-process-gpu` (predefinito), **156 MB** con l'accelerazione hardware spenta; con i flag predefiniti di
+  Tauri erano 221 MB. Il processo GPU separato da solo pesava ~89 MB. Misura: script PowerShell che somma
+  `PrivateMemorySize64` dell'albero di processi (vedi `commands/settings.rs` `webview_args`).
+- Finestra visibile dopo ~150–220 ms (a caldo), ~1,8 s al primo avvio a freddo.
+- Bundle JS iniziale **210 KB gzip** (era ~330): CodeMirror (`source/lazy.ts`) e l'elenco dei linguaggi di
+  `@codemirror/language-data` (`render/languages.ts`) sono chunk lazy, come Mermaid, KaTeX, DOMPurify, gemoji.
 
 ### Come sono fatti i temi (M4)
 - Rust `commands/themes.rs`: `list_themes`, `watch_themes` (evento `themes-changed`), `open_themes_folder`,
@@ -94,8 +99,9 @@ release `vX.Y.0` per milestone. Fermarsi prima che il contesto superi il 50% o c
 ## 2. Prossimo passo: M7 Rifinitura → v1.0
 
 Obiettivo: [ROADMAP.md](ROADMAP.md), sezione M7. In ordine:
-1. Aspettare il feedback dell'utente su M3–M6 e correggere i problemi trovati.
-2. Prestazioni: RAM di WebView2, CodeMirror caricato solo in modalità sorgente, avvio < 1 s, documenti da 10k righe.
+1. Aspettare il feedback dell'utente su M3–M7 ([DA-TESTARE.md](DA-TESTARE.md)) e correggere i problemi trovati.
+2. Fatto in `v0.7.0`: RAM WebView2, CodeMirror lazy, menu da tastiera, README. Da fare: documenti da 10k righe
+   (misurare digitazione e apertura), contrasto colori, screenshot nel README.
 3. PDF diretto senza dialog (WebView2 `PrintToPdf` via `webview2-com`, `WKWebView.createPDF`), header/footer.
 4. Accessibilità di base, menu nativo su macOS, README con screenshot, release `v1.0.0`.
 

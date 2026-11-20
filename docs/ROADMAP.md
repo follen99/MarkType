@@ -104,13 +104,15 @@ La RAM è sopra il target (< 150 MB): da ottimizzare in M7 (argomenti WebView2, 
 
 ## M7: Rifinitura → **v1.0**
 - [ ] Verifica dei target di prestazione (installer < 15 MB, avvio < 1 s, RAM < 150 MB, 10k righe)
-- [ ] Ridurre la RAM di WebView2 (oggi ~206 MB a vuoto, vedi le misure di M0)
-- [ ] Caricare CodeMirror solo al primo passaggio in modalità sorgente (bundle iniziale oggi 326 KB gzip)
+- [x] Ridurre la RAM di WebView2: 221 → 181 MB (GPU nel processo browser), 156 MB con l'accelerazione hardware spenta (`v0.7.0`)
+- [x] Caricare CodeMirror solo al primo passaggio in modalità sorgente: bundle iniziale 330 → 210 KB gzip (`v0.7.0`)
 - [ ] Menu nativo nella barra di sistema su macOS
 - [ ] PDF diretto senza dialog di stampa (WebView2 `PrintToPdf`, `WKWebView.createPDF`), header/footer
 - [ ] Menu contestuale "Apri con MarkType" anche nell'installer MSI
-- [ ] Accessibilità di base (navigazione da tastiera nei menu, contrasto)
-- [ ] README con screenshot, guida all'installazione per OS non firmati
+- [x] Navigazione da tastiera nei menu (`Alt`/`F10`, frecce) (`v0.7.0`)
+- [ ] Contrasto dei colori dell'interfaccia
+- [x] README con guida all'installazione per OS non firmati (`v0.7.0`)
+- [ ] Screenshot nel README
 - [ ] CHANGELOG e release `v1.0.0`
 
 ## Fase 2: versione web

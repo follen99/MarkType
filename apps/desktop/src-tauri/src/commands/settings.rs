@@ -91,6 +91,30 @@ pub fn update(path: &Path, patch: Map<String, Value>) -> Result<(), String> {
     atomic_write(path, text.as_bytes()).map_err(|e| format!("{}: {e}", path.display()))
 }
 
+/// WebView2 flags (Windows). They replace Tauri's defaults, so those are repeated here. Measured on
+/// Windows 11 (private memory of the app and its WebView2 processes, empty document): Tauri defaults
+/// ~221 MB, GPU inside the browser process ~181 MB, no GPU ~156 MB.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn webview_args(hardware_acceleration: bool) -> String {
+    let base = "--disable-features=msWebOOUI,msPdfOOUI,msSmartScreenProtection,SpareRendererForSitePerProcess";
+    let gpu = if hardware_acceleration {
+        "--in-process-gpu"
+    } else {
+        "--disable-gpu"
+    };
+    format!("{base} {gpu}")
+}
+
+/// `hardwareAcceleration` from settings.json (default on), read before the window exists.
+#[cfg_attr(not(windows), allow(dead_code))]
+pub fn hardware_acceleration(app: &AppHandle) -> bool {
+    config_file(app, SETTINGS_FILE)
+        .ok()
+        .and_then(|path| read_object(&path).ok().flatten())
+        .and_then(|values| values.get("hardwareAcceleration").and_then(Value::as_bool))
+        .unwrap_or(true)
+}
+
 fn config_file(app: &AppHandle, name: &str) -> Result<PathBuf, String> {
     Ok(user_config_dir(app)?.join(name))
 }
@@ -215,6 +239,18 @@ mod tests {
         let path = dir.path().join(KEYBINDINGS_FILE);
         fs::write(&path, "  \n").unwrap();
         assert_eq!(read_object(&path).unwrap(), Some(Map::new()));
+    }
+
+    #[test]
+    fn webview_args_keep_tauri_defaults() {
+        let on = webview_args(true);
+        let off = webview_args(false);
+        for args in [&on, &off] {
+            assert!(args.contains("msWebOOUI,msPdfOOUI,msSmartScreenProtection"));
+            assert_eq!(args.matches("--disable-features=").count(), 1);
+        }
+        assert!(on.ends_with("--in-process-gpu"));
+        assert!(off.ends_with("--disable-gpu"));
     }
 
     #[test]

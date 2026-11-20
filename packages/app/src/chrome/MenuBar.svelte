@@ -31,19 +31,90 @@
   let openMenu = $state<string | null>(null);
   let bar = $state<HTMLElement | null>(null);
 
+  /** Element focused before the menus took the keyboard (the editor), focused again on close. */
+  let returnFocus: HTMLElement | null = null;
+
   function toggle(id: string) {
     openMenu = openMenu === id ? null : id;
   }
 
+  function close() {
+    openMenu = null;
+    const target = returnFocus;
+    returnFocus = null;
+    if (target?.isConnected) target.focus();
+  }
+
   function choose(id: CommandId) {
+    returnFocus = null;
     openMenu = null;
     run(id);
   }
 
   function chooseSlot(item: Extract<SlotItem, { kind: 'item' }>) {
+    returnFocus = null;
     openMenu = null;
     item.run();
   }
+
+  const menuItems = () => [...(bar?.querySelectorAll<HTMLElement>('.mt-menu-panel .mt-menu-item') ?? [])];
+
+  /** Opens a menu from the keyboard and focuses one of its items (first, or last with `-1`). */
+  function openWithKeyboard(id: string, item = 0) {
+    if (!returnFocus && !bar?.contains(document.activeElement))
+      returnFocus = document.activeElement as HTMLElement | null;
+    openMenu = id;
+    queueMicrotask(() => {
+      const items = menuItems();
+      items.at(item < 0 ? items.length - 1 : 0)?.focus();
+    });
+  }
+
+  function moveFocus(step: number, edge?: 'first' | 'last') {
+    const items = menuItems();
+    if (!items.length) return;
+    let index = items.indexOf(document.activeElement as HTMLElement);
+    if (edge === 'first') index = 0;
+    else if (edge === 'last') index = items.length - 1;
+    else index = index < 0 ? (step > 0 ? 0 : items.length - 1) : (index + step + items.length) % items.length;
+    items[index]!.focus();
+  }
+
+  function switchMenu(step: number) {
+    const index = MENUS.findIndex((m) => m.id === openMenu);
+    const next = MENUS[(index + step + MENUS.length) % MENUS.length]!;
+    openWithKeyboard(next.id);
+  }
+
+  // Alt pressed and released alone, or F10, opens the first menu (Windows convention).
+  $effect(() => {
+    let altAlone = false;
+    const onKeydown = (event: KeyboardEvent) => {
+      altAlone = event.key === 'Alt' && !event.ctrlKey && !event.metaKey && !event.shiftKey;
+      if (event.key === 'F10' && !event.ctrlKey && !event.altKey && !event.metaKey && !event.shiftKey) {
+        event.preventDefault();
+        if (openMenu) close();
+        else openWithKeyboard(MENUS[0]!.id);
+      }
+    };
+    const onKeyup = (event: KeyboardEvent) => {
+      if (event.key === 'Alt' && altAlone && !isMac) {
+        event.preventDefault();
+        if (openMenu) close();
+        else openWithKeyboard(MENUS[0]!.id);
+      }
+      altAlone = false;
+    };
+    const reset = () => (altAlone = false);
+    window.addEventListener('keydown', onKeydown);
+    window.addEventListener('keyup', onKeyup);
+    window.addEventListener('pointerdown', reset, true);
+    return () => {
+      window.removeEventListener('keydown', onKeydown);
+      window.removeEventListener('keyup', onKeyup);
+      window.removeEventListener('pointerdown', reset, true);
+    };
+  });
 
   /** Drops hidden commands, then separators left at the edges or doubled. */
   function visibleEntries(items: (typeof MENUS)[number]['items']) {
@@ -58,8 +129,23 @@
     const onPointerDown = (event: PointerEvent) => {
       if (bar && !bar.contains(event.target as Node)) openMenu = null;
     };
+    const keys: Record<string, () => void> = {
+      Escape: close,
+      ArrowDown: () => moveFocus(1),
+      ArrowUp: () => moveFocus(-1),
+      Home: () => moveFocus(0, 'first'),
+      End: () => moveFocus(0, 'last'),
+      ArrowRight: () => switchMenu(1),
+      ArrowLeft: () => switchMenu(-1),
+      Tab: close,
+    };
     const onKeydown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') openMenu = null;
+      const action = keys[event.key];
+      if (!action) return;
+      // The editor must not move its cursor while the menu has the keyboard.
+      event.preventDefault();
+      event.stopPropagation();
+      action();
     };
     window.addEventListener('pointerdown', onPointerDown, true);
     window.addEventListener('keydown', onKeydown, true);

@@ -1,6 +1,4 @@
 import type { Language } from '@codemirror/language';
-import { LanguageDescription } from '@codemirror/language';
-import { languages } from '@codemirror/language-data';
 import { highlightTree, tagHighlighter, tags as t } from '@lezer/highlight';
 import type { Node as PMNode } from 'prosemirror-model';
 import { Plugin, PluginKey } from 'prosemirror-state';
@@ -35,6 +33,22 @@ const loaded = new Map<string, Language>();
 const pending = new Set<string>();
 const missing = new Set<string>();
 
+type LanguageList = typeof import('./languages.ts');
+let list: LanguageList | null = null;
+let listLoading: Promise<LanguageList> | null = null;
+const waiting = new Set<() => void>();
+
+/** Loads the language list once; every caller gets `onLoad` (deduplicated) when it is there. */
+function loadList(onLoad: () => void): void {
+  waiting.add(onLoad);
+  listLoading ??= import('./languages.ts').then((module) => {
+    list = module;
+    for (const cb of waiting) cb();
+    waiting.clear();
+    return module;
+  });
+}
+
 /**
  * The parser for a fence language (`js`, `python`…). Returns null while it is still loading (each
  * language is a separate chunk, loaded the first time it is used) and calls `onLoad` when ready.
@@ -44,7 +58,11 @@ export function languageFor(name: string, onLoad: () => void): Language | null {
   if (!key || missing.has(key)) return null;
   const ready = loaded.get(key);
   if (ready) return ready;
-  const description = LanguageDescription.matchLanguageName(languages, key, true);
+  if (!list) {
+    loadList(onLoad);
+    return null;
+  }
+  const description = list.LanguageDescription.matchLanguageName(list.languages, key, true);
   if (!description) {
     missing.add(key);
     return null;
